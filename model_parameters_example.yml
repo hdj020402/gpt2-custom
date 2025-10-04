@@ -1,0 +1,42 @@
+### General ###
+mode: training   # training / hparam_tuning / prediction / fine-tuning
+jobtype: ...
+seed: 42
+
+### Dataset ###
+train_file: null
+val_file: null
+test_file: null
+target: 'moltxt'
+corpus_file: null
+custom_tokens_file: null
+vocab_size: 1000
+tk_num_proc: 4
+batch_size: 32
+num_workers: 4
+
+### Model ###
+n_ctx: 1024
+n_embd: 768
+n_head: 12
+n_layer: 12
+n_positions: 1024
+pretrained_model: null
+
+### Training ###
+accumulation_steps: 1
+epoch: 500
+lr: 0.0001
+weight_decay: 0.01
+max_grad_norm: 1.0
+warmup_steps: 500
+eval_steps: 1000
+model_save_steps: 1000
+save_total_limit: 3
+logging_steps: 1000
+early_stopping:
+  patience: 10
+  threshold: 0
+
+
+
