@@ -80,7 +80,9 @@ def gen_trainer(
     return trainer
 
 
-from dataset.data_processing import gen_dataset
+import os
+from datasets import load_from_disk
+from dataset.data_processing import gen_dataset, hash_dataset
 from dataset.tokenizer import gen_tokenizer, tokenize
 from model.model_utils import gen_model
 
@@ -90,17 +92,26 @@ def build_trainer(param: dict) -> Trainer:
         corpus=datasets['corpus']['corpus']['text'],
         vocab_size=param['vocab_size'],
         added_tokens=datasets['custom_tokens']['custom_tokens']['token'])
-    train_val_dataset = datasets['train_val'].map(
-        lambda x: tokenize(
-            tokenizer=tokenizer,
-            batch=x,
-            target=param['target'],
-            context_length=param['n_ctx']
-            ),
-        batched=True,
-        remove_columns=datasets['train_val']['train'].column_names,
-        num_proc=param['tk_num_proc']
-        )
+
+    data_hash = hash_dataset(param)
+    os.path.makedirs('./cache/tokenized', exist_ok=True)
+    cache_path = f"./cache/tokenized/{data_hash['train_val']}"
+    if os.path.exists(cache_path):
+        print(f"Loading cached tokenized dataset from {cache_path} ...")
+        train_val_dataset = load_from_disk(cache_path)
+    else:
+        print("Tokenizing dataset ...")
+        train_val_dataset = datasets['train_val'].map(
+            lambda x: tokenize(
+                tokenizer=tokenizer,
+                batch=x,
+                target=param['target'],
+                context_length=param['n_ctx']
+                ),
+            batched=True,
+            remove_columns=datasets['train_val']['train'].column_names,
+            num_proc=param['tk_num_proc']
+            )
 
     model = gen_model(param, tokenizer)
     def model_init():
