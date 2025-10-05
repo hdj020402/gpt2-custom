@@ -8,7 +8,6 @@ log/
 *.png
 test.ipynb
 **/result_processing/
-*.json
 database/
 data_prep/
 model_parameters.yml
