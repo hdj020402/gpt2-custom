@@ -1,0 +1,44 @@
+### General ###
+optuna:
+  sampler:
+    type: TPESampler   # GridSampler / RandomSampler / TPESampler ...
+    seed: 42
+  pruner:
+    type: MedianPruner   # HyperbandPruner / ThresholdPruner / MedianPruner ...
+    n_warmup_steps: 20
+  direction: minimize
+  n_trials: 100
+  continue_trials:
+    continue: False
+    storage: null
+    study_name: null
+
+### Dataset ###
+per_device_train_batch_size:
+  type: discrete_uniform
+  low: 32
+  high: 256
+  q: 32
+
+### Model ###
+gradient_accumulation_steps:
+  type: discrete_uniform
+  low: 1
+  high: 10
+learning_rate:
+  type: loguniform
+  low: 0.0001
+  high: 0.01
+weight_decay:
+  type: loguniform
+  low: 0.01
+  high: 0.1
+max_grad_norm:
+  type: loguniform
+  low: 0.1
+  high: 1.0
+warmup_steps:
+  type: discrete_uniform
+  low: 100
+  high: 500
+  q: 100
