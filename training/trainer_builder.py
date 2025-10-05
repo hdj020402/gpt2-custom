@@ -94,7 +94,7 @@ def build_trainer(param: dict) -> Trainer:
         added_tokens=datasets['custom_tokens']['custom_tokens']['token'])
 
     data_hash = hash_dataset(param)
-    os.path.makedirs('./cache/tokenized', exist_ok=True)
+    os.makedirs('./cache/tokenized', exist_ok=True)
     cache_path = f"./cache/tokenized/{data_hash['train_val']}"
     if os.path.exists(cache_path):
         print(f"Loading cached tokenized dataset from {cache_path} ...")
