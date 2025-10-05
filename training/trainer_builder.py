@@ -112,6 +112,7 @@ def build_trainer(param: dict) -> Trainer:
             remove_columns=datasets['train_val']['train'].column_names,
             num_proc=param['tk_num_proc']
             )
+        train_val_dataset.save_to_disk(cache_path)
 
     model = gen_model(param, tokenizer)
     def model_init():
