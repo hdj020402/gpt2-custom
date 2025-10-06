@@ -21,7 +21,6 @@ n_embd: 768
 n_head: 12
 n_layer: 12
 n_positions: 1024
-pretrained_model: null
 
 ### Training ###
 gradient_accumulation_steps: 1
@@ -38,5 +37,11 @@ early_stopping:
   patience: 10
   threshold: 0
 
+### Generation ###
+pretrained_model: null
+start_token: '<Energy:>'
+stop_token: '</ei1a>'
+temperature: 0.0
+max_tokens: 100
 
 
