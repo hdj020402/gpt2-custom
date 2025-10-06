@@ -37,6 +37,8 @@ def hpo(param: dict, ht_param: dict):
         study_name=f"hptuning_{param['jobtype']}",
         storage=log_manager.optuna_db,
     )
+    print('\n\n')
+    print(best_run)
 
     log_manager.end_logging()
 
