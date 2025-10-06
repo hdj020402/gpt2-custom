@@ -3,6 +3,7 @@ os.environ['CUBLAS_WORKSPACE_CONFIG'] = ':4096:8'
 os.environ["PYTHONHASHSEED"] = "0"
 os.environ["HF_DATASETS_CACHE"] = os.path.abspath("./cache")
 os.environ["HF_HOME"] = os.path.abspath("./cache")
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
 import torch
 from training.train import training
 from training.hpo import hpo
