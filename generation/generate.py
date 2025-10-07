@@ -1,4 +1,6 @@
-from vllm import LLM, SamplingParams
+import os
+import pandas as pd
+
 from dataset.data_processing import gen_dataset
 from utils.utils import LogManager
 
@@ -16,6 +18,8 @@ def gen_prompts(param: dict):
 def generation(param: dict):
     log_manager = LogManager(param)
     log_manager.start_logging()
+    os.environ['VLLM_LOGGING_CONFIG_PATH'] = 'generation/logging_config.json'
+    from vllm import LLM, SamplingParams
 
     prompts_list = gen_prompts(param)
     print(f'Extracted {len(prompts_list)} prompts for generation ...')
@@ -25,20 +29,24 @@ def generation(param: dict):
         tokenizer_mode='auto',
         dtype='float16',
         max_model_len=param['n_ctx'],
-    )
+        )
     generation_config = SamplingParams(
         temperature=param['temperature'],
         max_tokens=param['max_tokens'],
         stop=param['stop_token'],
-    )
+        )
     generation_results = llm_engine.generate(
         prompts_list,
         generation_config,
-    )
+        )
+
     generated_texts = [result.outputs[0].text for result in generation_results]
     full_generated_sequences = [
         prompt + generated_text
         for prompt, generated_text in zip(prompts_list, generated_texts)
-    ]
+        ]
+    pd.DataFrame(
+        {param['target']: full_generated_sequences}
+        ).to_csv(f"{param['output_dir']}/generated_texts.csv", index=False)
 
     log_manager.end_logging()
