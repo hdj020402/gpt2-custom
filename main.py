@@ -5,10 +5,11 @@ os.environ["HF_DATASETS_CACHE"] = os.path.abspath("./cache")
 os.environ["HF_HOME"] = os.path.abspath("./cache")
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 import torch
+
 from training.train import training
 from training.hpo import hpo
+from generation.generate import generation
 from utils.setup_seed import setup_seed
-from utils.utils import LogManager
 
 
 def main():
@@ -27,8 +28,8 @@ def main():
         with open('hparam_tuning.yml', 'r', encoding='utf-8') as ht:
             ht_param: dict[str, dict] = yaml.full_load(ht)
         hpo(param, ht_param)
-    # elif param['mode'] == 'generation':
-    #     generation(param)
+    elif param['mode'] == 'generation':
+        generation(param)
 
 if __name__ == '__main__':
     main()
