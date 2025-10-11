@@ -2,7 +2,7 @@
 **/__pycache__/
 Training_Recording/
 Prediction_Recording/
-HPTuning_Recording/
+HPO_Recording/
 log/
 **/processed/
 *.png

@@ -34,7 +34,7 @@ def hpo(param: dict, ht_param: dict):
         backend="optuna",
         direction=ht_param['optuna']['direction'],
         n_trials=ht_param['optuna']['n_trials'],
-        study_name=f"hptuning_{param['jobtype']}",
+        study_name=f"hpo_{param['jobtype']}",
         storage=log_manager.optuna_db,
     )
     print('\n\n')
