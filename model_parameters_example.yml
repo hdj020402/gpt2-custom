@@ -38,6 +38,7 @@ early_stopping:
   threshold: 0
 
 ### Generation ###
+device: cuda
 pretrained_model: null
 start_token: '<Energy:>'
 stop_token: '</ei1a>'
