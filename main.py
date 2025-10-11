@@ -8,7 +8,7 @@ import torch
 
 from training.train import training
 from training.hpo import hpo
-from generation.generate import generation
+from generation.generate import generation, generation_cpu
 from utils.setup_seed import setup_seed
 
 
@@ -29,7 +29,10 @@ def main():
             ht_param: dict[str, dict] = yaml.full_load(ht)
         hpo(param, ht_param)
     elif param['mode'] == 'generation':
-        generation(param)
+        if param['device'] == 'cuda':
+            generation(param)
+        elif param['device'] == 'cpu':
+            generation_cpu(param)
 
 if __name__ == '__main__':
     main()
