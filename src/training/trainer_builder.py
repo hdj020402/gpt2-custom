@@ -82,9 +82,9 @@ def gen_trainer(
 
 import os
 from datasets import load_from_disk
-from dataset.data_processing import gen_dataset, hash_dataset
-from dataset.tokenizer import gen_tokenizer, tokenize
-from model.model_utils import gen_model
+from src.dataset.data_processing import gen_dataset, hash_dataset
+from src.dataset.tokenizer import gen_tokenizer, tokenize
+from src.model.model_utils import gen_model
 
 def build_trainer(param: dict) -> Trainer:
     datasets = gen_dataset(param)

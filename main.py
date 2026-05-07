@@ -6,15 +6,15 @@ os.environ["HF_HOME"] = os.path.abspath("./cache")
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 import torch
 
-from training.train import training
-from training.hpo import hpo
-from generation.generate import generation, generation_cpu
-from utils.setup_seed import setup_seed
+from src.training.train import training
+from src.training.hpo import hpo
+from src.generation.generate import generation, generation_cpu
+from src.utils.setup_seed import setup_seed
 
 
 def main():
     TIME = time.strftime('%b_%d_%Y_%H%M%S', time.localtime())
-    with open('model_parameters.yml', 'r', encoding='utf-8') as mp:
+    with open('configs/model_parameters.yml', 'r', encoding='utf-8') as mp:
         param: dict = yaml.full_load(mp)
     param['time'] = TIME
 
@@ -25,7 +25,7 @@ def main():
     if param['mode'] in ['training', 'fine-tuning']:
         training(param)
     elif param['mode'] == 'hpo':
-        with open('hparam_tuning.yml', 'r', encoding='utf-8') as ht:
+        with open('configs/hparam_tuning.yml', 'r', encoding='utf-8') as ht:
             ht_param: dict[str, dict] = yaml.full_load(ht)
         hpo(param, ht_param)
     elif param['mode'] == 'generation':

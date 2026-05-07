@@ -1,8 +1,8 @@
 import optuna
 from typing import Callable
 
-from training.trainer_builder import build_trainer
-from utils.utils import LogManager
+from src.training.trainer_builder import build_trainer
+from src.utils.utils import LogManager
 
 def make_hp_space(ht_param: dict[str, dict]) -> Callable[[optuna.Trial], dict]:
     def hp_space(trial: optuna.Trial) -> dict:

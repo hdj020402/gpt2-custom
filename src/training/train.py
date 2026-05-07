@@ -1,5 +1,5 @@
-from training.trainer_builder import build_trainer
-from utils.utils import LogManager
+from src.training.trainer_builder import build_trainer
+from src.utils.utils import LogManager
 
 def training(param: dict):
     log_manager = LogManager(param)

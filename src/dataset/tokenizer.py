@@ -6,14 +6,14 @@ def gen_tokenizer(
     vocab_size: int,
     added_tokens: Iterable[str]
 ) -> PreTrainedTokenizer:
-    old_tokenizer = AutoTokenizer.from_pretrained('gpt2-original')
+    old_tokenizer = AutoTokenizer.from_pretrained('configs/gpt2-original')
     tokenizer = old_tokenizer.train_new_from_iterator(corpus, vocab_size=vocab_size)
     tokenizer.add_tokens(list(added_tokens))
     tokenizer.add_special_tokens(
         special_tokens_dict={
             'bos_token': '<|endoftext|>',
             'eos_token': '<|endoftext|>',
-            'pad_token': ' ',
+            'pad_token': '<pad>',
             'unk_token': '<|endoftext|>'})
 
     return tokenizer

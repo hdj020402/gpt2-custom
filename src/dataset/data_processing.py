@@ -1,5 +1,5 @@
 from datasets import load_dataset, DatasetDict
-from utils.utils import hash_files
+from src.utils.utils import hash_files
 
 def gen_dataset(param: dict) -> dict[str, DatasetDict]:
     train_file = param['train_file']

@@ -48,27 +48,27 @@ class LogManager:
     
     def start_logging(self):
         if self.param['mode'] == 'training':
-            self.param['output_dir'] = f"Training_Recording/{self.param['jobtype']}/{self.param['time']}"
+            self.param['output_dir'] = f"outputs/training/{self.param['jobtype']}/{self.param['time']}"
             logger_name = f"training_{self.param['time']}"
         elif self.param['mode'] == 'generation':
-            self.param['output_dir'] = f"Generation_Recording/{self.param['jobtype']}/{self.param['time']}"
+            self.param['output_dir'] = f"outputs/generation/{self.param['jobtype']}/{self.param['time']}"
             logger_name = f"generation_{self.param['time']}"
             if self.param['device'] == 'cuda':
-                with open('generation/logging_config.json') as f:
+                with open('configs/logging_config.example.json') as f:
                     logging_config = json.load(f)
                 logging_config['handlers']['vllm']['filename'] = os.path.abspath(
                     f"{self.param['output_dir']}/{logger_name}.log"
                     )
-                with open('generation/logging_config.json', 'w') as f:
+                with open('configs/logging_config.json', 'w') as f:
                     json.dump(logging_config, f, indent=2)
         elif self.param['mode'] == 'hpo':
-            self.param['output_dir'] = f"HPO_Recording/{self.param['jobtype']}/{self.param['time']}"
+            self.param['output_dir'] = f"outputs/hpo/{self.param['jobtype']}/{self.param['time']}"
             logger_name = f"hpo_{self.param['time']}"
             self.optuna_db = f'sqlite:///{self.param['output_dir']}/hpo_{self.param['time']}.db'
 
         os.makedirs(self.param['output_dir'], exist_ok=True)
         log_file_path = f"{self.param['output_dir']}/{logger_name}.log"
-        shutil.copy('model_parameters.yml', self.param['output_dir'])
+        shutil.copy('configs/model_parameters.yml', self.param['output_dir'])
 
         self.logger = setup_logger(logger_name, log_file_path)
         self.original_stdout = sys.stdout

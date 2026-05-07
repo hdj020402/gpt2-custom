@@ -2,8 +2,8 @@ import os
 import pandas as pd
 from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
 
-from dataset.data_processing import gen_dataset
-from utils.utils import LogManager
+from src.dataset.data_processing import gen_dataset
+from src.utils.utils import LogManager
 
 def gen_prompts(param: dict) -> list[str]:
     datasets = gen_dataset(param)
@@ -19,7 +19,7 @@ def gen_prompts(param: dict) -> list[str]:
 def generation(param: dict):
     log_manager = LogManager(param)
     log_manager.start_logging()
-    os.environ['VLLM_LOGGING_CONFIG_PATH'] = 'generation/logging_config.json'
+    os.environ['VLLM_LOGGING_CONFIG_PATH'] = 'configs/logging_config.json'
     from vllm import LLM, SamplingParams
 
     print("Generating using GPU ...")

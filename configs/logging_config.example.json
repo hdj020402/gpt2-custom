@@ -11,7 +11,7 @@
       "class": "logging.FileHandler",
       "formatter": "vllm",
       "level": "DEBUG",
-      "filename": "/home2/hdj/inchi-gpt/gpt2-custom/Generation_Recording/test/Oct_12_2025_015823/vllm.log",
+      "filename": "/path/to/filename",
       "mode": "a",
       "encoding": "utf-8"
     }
