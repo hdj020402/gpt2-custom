@@ -1,9 +1,12 @@
 import os
+import logging
 import pandas as pd
 from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
 
 from src.dataset.data_processing import gen_dataset
 from src.utils.utils import LogManager
+
+logger = logging.getLogger(__name__)
 
 def gen_prompts(param: dict) -> list[str]:
     datasets = gen_dataset(param)
@@ -22,10 +25,10 @@ def generation(param: dict):
     os.environ['VLLM_LOGGING_CONFIG_PATH'] = 'configs/logging_config.json'
     from vllm import LLM, SamplingParams
 
-    print("Generating using GPU ...")
+    logger.info("Generating using GPU ...")
 
     prompts_list = gen_prompts(param)
-    print(f'Extracted {len(prompts_list)} prompts for generation ...')
+    logger.info(f'Extracted {len(prompts_list)} prompts for generation ...')
 
     llm_engine = LLM(
         model=param['pretrained_model'],
@@ -58,10 +61,10 @@ def generation_cpu(param: dict):
     log_manager = LogManager(param)
     log_manager.start_logging()
 
-    print("Generating using CPU ...")
+    logger.info("Generating using CPU ...")
 
     prompts_list = gen_prompts(param)
-    print(f'Extracted {len(prompts_list)} prompts for generation ...')
+    logger.info(f'Extracted {len(prompts_list)} prompts for generation ...')
 
     device = 'cpu'
     tokenizer = AutoTokenizer.from_pretrained(param['pretrained_model'])
@@ -75,7 +78,7 @@ def generation_cpu(param: dict):
 
     generated_texts = []
     for i, prompt in enumerate(prompts_list):
-        print(f"Generating {i+1}/{len(prompts_list)} ...")
+        logger.info(f"Generating {i+1}/{len(prompts_list)} ...")
         outputs = generator(
             prompt,
             max_new_tokens=param['max_tokens'],

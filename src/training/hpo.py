@@ -1,8 +1,11 @@
 import optuna
+import logging
 from typing import Callable
 
 from src.training.trainer_builder import build_trainer
 from src.utils.utils import LogManager
+
+logger = logging.getLogger(__name__)
 
 def make_hp_space(ht_param: dict[str, dict]) -> Callable[[optuna.Trial], dict]:
     def hp_space(trial: optuna.Trial) -> dict:
@@ -37,8 +40,7 @@ def hpo(param: dict, ht_param: dict):
         study_name=f"hpo_{param['jobtype']}",
         storage=log_manager.optuna_db,
     )
-    print('\n\n')
-    print(best_run)
+    logger.info(best_run)
 
     log_manager.end_logging()
 

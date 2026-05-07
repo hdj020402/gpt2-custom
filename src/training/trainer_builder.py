@@ -81,10 +81,13 @@ def gen_trainer(
 
 
 import os
+import logging
 from datasets import load_from_disk
 from src.dataset.data_processing import gen_dataset, hash_dataset
 from src.dataset.tokenizer import gen_tokenizer, tokenize
 from src.model.model_utils import gen_model
+
+logger = logging.getLogger(__name__)
 
 def build_trainer(param: dict) -> Trainer:
     datasets = gen_dataset(param)
@@ -97,10 +100,10 @@ def build_trainer(param: dict) -> Trainer:
     os.makedirs('./cache/tokenized', exist_ok=True)
     cache_path = f"./cache/tokenized/{data_hash['train_val']}"
     if os.path.exists(cache_path):
-        print(f"Loading cached tokenized dataset from {cache_path} ...")
+        logger.info(f"Loading cached tokenized dataset from {cache_path} ...")
         train_val_dataset = load_from_disk(cache_path)
     else:
-        print("Tokenizing dataset ...")
+        logger.info("Tokenizing dataset ...")
         train_val_dataset = datasets['train_val'].map(
             lambda x: tokenize(
                 tokenizer=tokenizer,
