@@ -44,7 +44,6 @@ class LogManager:
     def __init__(self, param: dict):
         self.param = param
         self.logger: logging.Logger | None = None
-        self.root_logger: logging.Logger | None = None
         self.original_stdout = None
     
     def start_logging(self):
@@ -72,7 +71,6 @@ class LogManager:
         shutil.copy('configs/model_parameters.yml', self.param['output_dir'])
 
         self.logger = setup_logger(logger_name, log_file_path)
-        self.root_logger = setup_logger('', log_file_path)
 
         self.original_stdout = sys.stdout
         sys.stdout = LoggerWriter(self.logger, logging.INFO)
@@ -80,10 +78,6 @@ class LogManager:
     def end_logging(self):
         if self.original_stdout:
             sys.stdout = self.original_stdout
-        if self.root_logger:
-            for handler in self.root_logger.handlers[:]:
-                handler.close()
-                self.root_logger.removeHandler(handler)
         if self.logger:
             for handler in self.logger.handlers[:]:
                 handler.close()
