@@ -6,6 +6,7 @@ def training(param: dict):
     log_manager.start_logging()
 
     trainer = build_trainer(param)
-    trainer.train()
+    resume_from_checkpoint = param.get('resume_from_checkpoint')
+    trainer.train(resume_from_checkpoint=resume_from_checkpoint)
 
     log_manager.end_logging()

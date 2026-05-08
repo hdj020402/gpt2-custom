@@ -23,6 +23,7 @@ n_layer: 12
 n_positions: 1024
 
 ### Training ###
+resume_from_checkpoint: null   # Path to checkpoint dir (e.g. ./output/checkpoint-1000) to resume training
 gradient_accumulation_steps: 1
 num_train_epochs: 500
 learning_rate: 0.0001
