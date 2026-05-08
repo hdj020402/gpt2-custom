@@ -38,7 +38,7 @@ def gen_trainer(
         learning_rate=param['learning_rate'],
         weight_decay=param['weight_decay'],
         max_grad_norm=param['max_grad_norm'],
-        warmup_steps=param['warmup_steps'],
+        warmup_ratio=param['warmup_ratio'],
         lr_scheduler_type="cosine",
         adam_beta1=0.9,
         adam_beta2=0.95,

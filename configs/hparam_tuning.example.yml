@@ -37,8 +37,7 @@ max_grad_norm:
   type: loguniform
   low: 0.1
   high: 1.0
-warmup_steps:
-  type: discrete_uniform
-  low: 100
-  high: 500
-  q: 100
+warmup_ratio:
+  type: uniform
+  low: 0.01
+  high: 0.1

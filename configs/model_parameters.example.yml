@@ -25,17 +25,17 @@ n_positions: 1024
 ### Training ###
 resume_from_checkpoint: null   # Path to checkpoint dir (e.g. ./output/checkpoint-1000) to resume training
 gradient_accumulation_steps: 1
-num_train_epochs: 500
+num_train_epochs: 30
 learning_rate: 0.0001
 weight_decay: 0.01
 max_grad_norm: 1.0
-warmup_steps: 500
+warmup_ratio: 0.03
 eval_steps: 1000
 model_save_steps: 1000
 save_total_limit: 3
 logging_steps: 1000
 early_stopping:
-  patience: 10
+  patience: 20
   threshold: 0
 
 ### Generation ###
