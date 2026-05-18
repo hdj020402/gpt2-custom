@@ -35,6 +35,9 @@ class LoggerWriter:
                 self.logger.log(self.level, line)
             self.buf = lines[-1] if lines else self.buf
 
+    def fileno(self):
+        return sys.__stdout__.fileno()
+
     def flush(self):
         if self.buf:
             self.logger.log(self.level, self.buf)
