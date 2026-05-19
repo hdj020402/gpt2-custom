@@ -1,5 +1,6 @@
 import importlib.util
 import os
+import sys
 import logging
 
 logger = logging.getLogger(__name__)
@@ -14,6 +15,7 @@ def load_custom_module(path: str | None):
 
     spec = importlib.util.spec_from_file_location("custom_module", path)
     module = importlib.util.module_from_spec(spec)
+    sys.modules["custom_module"] = module
     spec.loader.exec_module(module)
     logger.info(f"Loaded custom module from {path}")
     return module
