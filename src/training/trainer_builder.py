@@ -97,6 +97,7 @@ from src.dataset.tokenizer import gen_tokenizer, tokenize
 from src.dataset.data_collator import DataCollatorForCLMWithLabels
 from src.model.model_utils import gen_model
 from src.utils.custom_module_loader import load_custom_module
+from src.utils.utils import hash_files
 
 logger = logging.getLogger(__name__)
 
@@ -113,13 +114,13 @@ def build_trainer(param: dict) -> Trainer:
     tokenize_fn = getattr(custom, 'tokenize', None) or tokenize
     tk_batched = getattr(custom, 'tk_batched', True)
 
-    # Build cache hash (include custom tokenize function if present)
+    # Build cache hash (include custom module file if present)
     data_hash = hash_dataset(param)
     cache_key = data_hash['train_val']
-    if getattr(custom, 'tokenize', None) is not None:
-        import hashlib, inspect
-        tk_hash = hashlib.md5(inspect.getsource(custom.tokenize).encode()).hexdigest()[:12]
-        cache_key = f"{cache_key}_{tk_hash}_{tk_batched}"
+    custom_module_path = param.get('custom_module')
+    if custom_module_path:
+        custom_hash = hash_files(os.path.abspath(custom_module_path))
+        cache_key = f"{cache_key}_{custom_hash}"
 
     os.makedirs('./cache/tokenized', exist_ok=True)
     cache_path = f"./cache/tokenized/{cache_key}"
