@@ -140,7 +140,7 @@ def build_trainer(param: dict) -> Trainer:
             remove_columns=datasets['train_val']['train'].column_names,
             num_proc=param['tk_num_proc']
             )
-        train_val_dataset.save_to_disk(cache_path)
+        train_val_dataset.save_to_disk(cache_path, num_proc=param['tk_num_proc'])
 
     # Auto-detect data collator based on whether labels exist
     has_labels = "labels" in train_val_dataset["train"].column_names
