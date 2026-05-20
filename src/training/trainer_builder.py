@@ -102,7 +102,8 @@ from src.utils.utils import hash_files
 logger = logging.getLogger(__name__)
 
 def build_trainer(param: dict) -> Trainer:
-    custom = load_custom_module(param.get('custom_module'))
+    custom_tk = load_custom_module(param.get('custom_tokenize'), name="custom_tokenize")
+    custom_mt = load_custom_module(param.get('custom_metrics'), name="custom_metrics")
 
     datasets = gen_dataset(param)
     tokenizer = gen_tokenizer(
@@ -111,15 +112,15 @@ def build_trainer(param: dict) -> Trainer:
         added_tokens=datasets['custom_tokens']['custom_tokens']['token'])
 
     # Determine tokenize function and batched mode
-    tokenize_fn = getattr(custom, 'tokenize', None) or tokenize
-    tk_batched = getattr(custom, 'tk_batched', True)
+    tokenize_fn = getattr(custom_tk, 'tokenize', None) or tokenize
+    tk_batched = getattr(custom_tk, 'tk_batched', True)
 
-    # Build cache hash (include custom module file if present)
+    # Build cache hash (include custom tokenize file if present)
     data_hash = hash_dataset(param)
     cache_key = data_hash['train_val']
-    custom_module_path = param.get('custom_module')
-    if custom_module_path:
-        custom_hash = hash_files(os.path.abspath(custom_module_path))
+    custom_tk_path = param.get('custom_tokenize')
+    if custom_tk_path:
+        custom_hash = hash_files(os.path.abspath(custom_tk_path))
         cache_key = f"{cache_key}_{custom_hash}"
 
     os.makedirs('./cache/tokenized', exist_ok=True)
@@ -146,15 +147,15 @@ def build_trainer(param: dict) -> Trainer:
     has_labels = "labels" in train_val_dataset["train"].column_names
     data_collator = DataCollatorForCLMWithLabels(tokenizer) if has_labels else None
 
-    # Inject tokenizer into custom module so compute_metrics can access it
-    if custom is not None:
-        custom.tokenizer = tokenizer
+    # Inject tokenizer into custom metrics module so compute_metrics can access it
+    if custom_mt is not None:
+        custom_mt.tokenizer = tokenizer
 
     # Extract custom metrics settings
-    compute_metrics_fn = getattr(custom, 'compute_metrics', None)
-    preprocess_logits_fn = getattr(custom, 'preprocess_logits_for_metrics', None)
-    metric_name = getattr(custom, 'metric_for_best_model', 'eval_loss')
-    greater = getattr(custom, 'greater_is_better', False)
+    compute_metrics_fn = getattr(custom_mt, 'compute_metrics', None)
+    preprocess_logits_fn = getattr(custom_mt, 'preprocess_logits_for_metrics', None)
+    metric_name = getattr(custom_mt, 'metric_for_best_model', 'eval_loss')
+    greater = getattr(custom_mt, 'greater_is_better', False)
 
     model = gen_model(param, tokenizer)
     def model_init():

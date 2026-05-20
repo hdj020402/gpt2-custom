@@ -5,7 +5,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-def load_custom_module(path: str | None):
+def load_custom_module(path: str | None, name: str = "custom_module"):
     if not path:
         return None
 
@@ -13,9 +13,9 @@ def load_custom_module(path: str | None):
     if not os.path.isfile(path):
         raise FileNotFoundError(f"Custom module not found: {path}")
 
-    spec = importlib.util.spec_from_file_location("custom_module", path)
+    spec = importlib.util.spec_from_file_location(name, path)
     module = importlib.util.module_from_spec(spec)
-    sys.modules["custom_module"] = module
+    sys.modules[name] = module
     spec.loader.exec_module(module)
-    logger.info(f"Loaded custom module from {path}")
+    logger.info(f"Loaded custom module '{name}' from {path}")
     return module

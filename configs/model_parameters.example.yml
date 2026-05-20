@@ -10,7 +10,8 @@ test_file: null
 target: 'moltxt'
 corpus_file: null
 custom_tokens_file: null
-custom_module: null   # Path to a .py file defining custom tokenize/metrics (see docs)
+custom_tokenize: null   # Path to .py defining custom tokenize function (changes invalidate cache)
+custom_metrics: null    # Path to .py defining compute_metrics/preprocess_logits (no cache impact)
 vocab_size: 1000
 tk_num_proc: 4
 per_device_train_batch_size: 32

@@ -12,7 +12,8 @@ configs/model_parameters.yml
 configs/hparam_tuning.yml
 configs/logging_config.json
 custom/*
-!custom/custom_module.example.py
+!custom/custom_tokenize.example.py
+!custom/custom_metrics.example.py
 test_data/
 cache/
 .qoder/

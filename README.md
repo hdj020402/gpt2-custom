@@ -94,35 +94,42 @@ GPT-2 model architecture definition and construction tools.
 
 ## Custom Module Extension
 
-The framework supports user-defined Python modules to customize training behavior without modifying framework code. Set in `configs/model_parameters.yml`:
+The framework supports user-defined Python modules to customize tokenization and evaluation without modifying framework code. Two separate module files can be configured in `configs/model_parameters.yml`:
 
 ```yaml
-custom_module: custom/custom_module.py
+custom_tokenize: custom/custom_tokenize.py  # changes invalidate tokenization cache
+custom_metrics: custom/custom_metrics.py    # changes do NOT invalidate cache
 ```
 
-To get started, copy the template:
+To get started, copy the templates:
 
 ```bash
-cp custom/custom_module.example.py custom/custom_module.py
+cp custom/custom_tokenize.example.py custom/custom_tokenize.py
+cp custom/custom_metrics.example.py custom/custom_metrics.py
 ```
 
-A custom module can define any combination of the following (all optional):
+### custom_tokenize module
 
 | Name | Type | Purpose |
 |------|------|---------|
 | `tokenize(tokenizer, batch, target, context_length)` | function | Override default tokenization (e.g. label masking) |
 | `tk_batched` | `bool` | Control `dataset.map(batched=?)` (default: `True`) |
+
+### custom_metrics module
+
+| Name | Type | Purpose |
+|------|------|---------|
 | `compute_metrics(eval_pred)` | function | Custom evaluation metrics |
 | `preprocess_logits_for_metrics(logits, labels)` | function | Pre-process logits before metrics (e.g. argmax) |
 | `metric_for_best_model` | `str` | Metric name for best model selection (default: `"eval_loss"`) |
 | `greater_is_better` | `bool` | Whether the metric is higher-is-better (default: `False`) |
 
-When `custom_module` is `null` (default), all behavior is identical to the standard training pipeline.
+When both are `null` (default), all behavior is identical to the standard training pipeline.
 
 **Key behaviors:**
 - If the custom `tokenize` returns a `labels` column, the framework automatically switches to a data collator that pads labels with `-100`.
-- The tokenizer is injected into the custom module at runtime (`custom.tokenizer`), making it available for `compute_metrics`.
-- The custom module file is included in the dataset cache hash, so modifying it automatically invalidates the tokenization cache.
+- The tokenizer is injected into the custom metrics module at runtime, accessible via `sys.modules[__name__].tokenizer` in `compute_metrics`.
+- Only the `custom_tokenize` file is included in the dataset cache hash. Modifying `custom_metrics` does **not** trigger re-tokenization.
 
 ## Dependencies
 
