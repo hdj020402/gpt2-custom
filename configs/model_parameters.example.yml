@@ -23,6 +23,7 @@ n_embd: 768
 n_head: 12
 n_layer: 12
 n_positions: 1024
+dropout: 0.1
 
 ### Training ###
 resume_from_checkpoint: null   # Path to checkpoint dir (e.g. ./output/checkpoint-1000) to resume training
