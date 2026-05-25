@@ -17,4 +17,5 @@ custom/*
 test_data/
 cache/
 .qoder/
+.vscode/
 ./*.log
