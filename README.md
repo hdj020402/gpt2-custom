@@ -18,7 +18,9 @@ A custom implementation of GPT-2 architecture supporting model training, hyperpa
 │   ├── hparam_tuning.example.yml     # HPO configuration template
 │   ├── logging_config.example.json   # vLLM logging configuration template
 │   └── gpt2-original/               # GPT-2 tokenizer configuration files
-├── custom/                           # User-defined custom modules (gitignored)
+├── custom/                           # User-defined custom modules
+├── scripts/                          # Utility scripts
+│   └── scan_runs.py                  # Training run comparison tool
 ├── src/                              # Source code
 │   ├── dataset/                      # Data loading and tokenizer
 │   │   ├── data_processing.py
@@ -77,6 +79,27 @@ Based on the configured `mode` parameter, the program will perform corresponding
 - **Training mode (training/fine-tuning)**: Train or fine-tune GPT-2 model
 - **Hyperparameter optimization mode (hpo)**: Use Optuna for hyperparameter search
 - **Generation mode (generation)**: Generate texts using trained model
+
+### 3. Compare Training Runs
+
+```bash
+# CSV (all params + metrics, auto-discovered) — open in Excel / pandas
+python scripts/scan_runs.py > runs.csv
+
+# Terminal table (compact subset)
+python scripts/scan_runs.py --table --filter 1p0kcal --last 10
+
+# Filter + sort
+python scripts/scan_runs.py --filter inchi_3M --sort best_eval_loss > runs.csv
+
+# Custom columns for table mode
+python scripts/scan_runs.py --table --cols learning_rate,dropout,best_eval_loss
+```
+
+`scan_runs.py` scans all training runs under `outputs/training/`, extracts hyperparameters
+from `model_parameters.yml` and metrics from training logs, and emits a unified CSV or
+terminal table.  All parameter names are preserved verbatim from the YAML config.
+See `--help` for all options.
 
 ## Component Descriptions
 
