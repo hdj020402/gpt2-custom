@@ -44,7 +44,7 @@ def gen_trainer(
         learning_rate=param['learning_rate'],
         weight_decay=param['weight_decay'],
         max_grad_norm=param['max_grad_norm'],
-        warmup_ratio=param['warmup_ratio'],
+        warmup_steps=param['warmup_steps'],
         lr_scheduler_type="cosine",
         adam_beta1=0.9,
         adam_beta2=0.95,
@@ -156,6 +156,20 @@ def build_trainer(param: dict) -> Trainer:
     preprocess_logits_fn = getattr(custom_mt, 'preprocess_logits_for_metrics', None)
     metric_name = getattr(custom_mt, 'metric_for_best_model', 'eval_loss')
     greater = getattr(custom_mt, 'greater_is_better', False)
+
+    # Resolve warmup_steps — auto-calculate from warmup_ratio if not explicitly set
+    if param.get('warmup_steps') is None:
+        warmup_ratio = param.get('warmup_ratio', 0.0)
+        if warmup_ratio > 0:
+            import math
+            effective_batch = param['per_device_train_batch_size'] * param.get('gradient_accumulation_steps', 1)
+            steps_per_epoch = len(train_val_dataset['train']) // effective_batch
+            total_steps = steps_per_epoch * param['num_train_epochs']
+            param['warmup_steps'] = math.ceil(warmup_ratio * total_steps)
+            logger.info(f"Auto-calculated warmup_steps={param['warmup_steps']} "
+                        f"(ratio={warmup_ratio}, total_steps={total_steps})")
+        else:
+            param['warmup_steps'] = 0
 
     model = gen_model(param, tokenizer)
     def model_init():

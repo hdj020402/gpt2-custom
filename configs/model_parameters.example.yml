@@ -32,7 +32,8 @@ num_train_epochs: 30
 learning_rate: 0.0001
 weight_decay: 0.01
 max_grad_norm: 1.0
-warmup_ratio: 0.03
+warmup_ratio: 0.03   # Fraction of total steps for LR warmup; auto-converted to warmup_steps
+# warmup_steps: 650  # Set directly to override auto-calculation from warmup_ratio
 eval_steps: 1000
 model_save_steps: 1000
 save_total_limit: 3
