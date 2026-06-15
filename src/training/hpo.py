@@ -28,20 +28,16 @@ def make_hp_space(ht_param: dict[str, dict]) -> Callable[[optuna.Trial], dict]:
     return hp_space
 
 def hpo(param: dict, ht_param: dict):
-    log_manager = LogManager(param)
-    log_manager.start_logging()
-
-    trainer = build_trainer(param)
-    best_run = trainer.hyperparameter_search(
-        hp_space=make_hp_space(ht_param),
-        backend="optuna",
-        direction=ht_param['optuna']['direction'],
-        n_trials=ht_param['optuna']['n_trials'],
-        study_name=f"hpo_{param['jobtype']}",
-        storage=log_manager.optuna_db,
-    )
-    logger.info(best_run)
-
-    log_manager.end_logging()
+    with LogManager(param) as lm:
+        trainer = build_trainer(param)
+        best_run = trainer.hyperparameter_search(
+            hp_space=make_hp_space(ht_param),
+            backend="optuna",
+            direction=ht_param['optuna']['direction'],
+            n_trials=ht_param['optuna']['n_trials'],
+            study_name=f"hpo_{param['jobtype']}",
+            storage=lm.optuna_db,
+        )
+        logger.info(best_run)
 
     return best_run

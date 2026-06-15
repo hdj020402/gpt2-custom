@@ -1,80 +1,49 @@
 from datasets import load_dataset, DatasetDict
 from src.utils.utils import hash_files
 
-def gen_dataset(param: dict) -> dict[str, DatasetDict]:
-    train_file = param['train_file']
-    val_file = param['val_file']
-    try:
-        train_val_dataset = load_dataset(
-            'csv',
-            data_files={'train':train_file,'val':val_file},
-            )
-    except TypeError:
-        train_val_dataset = None
 
-    test_file = param['test_file']
-    try:
-        test_dataset = load_dataset(
-            'csv',
-            data_files={'test':test_file},
-            )
-    except TypeError:
-        test_dataset = None
+# Map dataset key → (param_key_for_file, data_files_keys)
+_DATASET_SPECS: dict[str, tuple[str | None, list[str]]] = {
+    "train_val":     ("train_file",      ["train", "val"]),
+    "test":          ("test_file",       ["test"]),
+    "corpus":        ("corpus_file",     ["corpus"]),
+    "custom_tokens": ("custom_tokens_file", ["custom_tokens"]),
+}
 
-    corpus_file = param['corpus_file']
-    try:
-        corpus_dataset = load_dataset(
-            'csv',
-            data_files={'corpus':corpus_file},
-            )
-    except TypeError:
-        corpus_dataset = None
 
-    custom_tokens_file = param['custom_tokens_file']
-    try:
-        custom_tokens_dataset = load_dataset(
-            'csv',
-            data_files={'custom_tokens':custom_tokens_file},
-            )
-    except TypeError:
-        custom_tokens_dataset = None
+def _load_one(param: dict, key: str) -> DatasetDict | None:
+    """Load a single CSV dataset.  Returns None if the param key is not set."""
+    param_key, data_keys = _DATASET_SPECS[key]
+    file_path = param.get(param_key)
+    if file_path is None:
+        return None
 
-    return {
-        'train_val':train_val_dataset,
-        'test':test_dataset,
-        'corpus':corpus_dataset,
-        'custom_tokens':custom_tokens_dataset
-        }
+    # train_val takes two files; others take one
+    if key == "train_val":
+        data_files = {"train": param["train_file"], "val": param["val_file"]}
+        if any(v is None for v in data_files.values()):
+            return None
+    else:
+        data_files = {data_keys[0]: file_path}
 
-def hash_dataset(param: dict):
-    train_file = param['train_file']
-    val_file = param['val_file']
-    try:
-        train_val_hash = hash_files(train_file, val_file)
-    except TypeError:
-        train_val_hash = None
+    return load_dataset("csv", data_files=data_files)
 
-    test_file = param['test_file']
-    try:
-        test_hash = hash_files(test_file)
-    except TypeError:
-        test_hash = None
 
-    corpus_file = param['corpus_file']
-    try:
-        corpus_hash = hash_files(corpus_file)
-    except TypeError:
-        corpus_hash = None
+def gen_dataset(param: dict) -> dict[str, DatasetDict | None]:
+    """Load all configured datasets.  Returns a dict keyed by dataset name,
+    with None for any dataset whose file path was not provided."""
+    return {key: _load_one(param, key) for key in _DATASET_SPECS}
 
-    custom_tokens_file = param['custom_tokens_file']
-    try:
-        custom_tokens_hash = hash_files(custom_tokens_file)
-    except TypeError:
-        custom_tokens_hash = None
 
-    return {
-        'train_val':train_val_hash,
-        'test':test_hash,
-        'corpus':corpus_hash,
-        'custom_tokens':custom_tokens_hash
-        }
+def hash_dataset(param: dict) -> dict[str, str | None]:
+    """Hash the data files for each dataset, for cache key generation."""
+    result = {}
+    for key, (param_key, data_keys) in _DATASET_SPECS.items():
+        if key == "train_val":
+            f1 = param.get("train_file")
+            f2 = param.get("val_file")
+            result[key] = hash_files(f1, f2) if f1 and f2 else None
+        else:
+            f = param.get(param_key)
+            result[key] = hash_files(f) if f else None
+    return result

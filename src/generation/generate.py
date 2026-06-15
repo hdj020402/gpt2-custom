@@ -20,82 +20,75 @@ def gen_prompts(param: dict) -> list[str]:
     return prompts_list
 
 def generation(param: dict):
-    log_manager = LogManager(param)
-    log_manager.start_logging()
-    os.environ['VLLM_LOGGING_CONFIG_PATH'] = 'configs/logging_config.json'
-    from vllm import LLM, SamplingParams
+    with LogManager(param):
+        os.environ['VLLM_LOGGING_CONFIG_PATH'] = 'configs/logging_config.json'
+        from vllm import LLM, SamplingParams
 
-    logger.info("Generating using GPU ...")
+        logger.info("Generating using GPU ...")
 
-    prompts_list = gen_prompts(param)
-    logger.info(f'Extracted {len(prompts_list)} prompts for generation ...')
+        prompts_list = gen_prompts(param)
+        logger.info(f'Extracted {len(prompts_list)} prompts for generation ...')
 
-    llm_engine = LLM(
-        model=param['pretrained_model'],
-        tokenizer_mode='auto',
-        dtype='float16',
-        max_model_len=param['n_ctx'],
-        )
-    generation_config = SamplingParams(
-        temperature=param['temperature'],
-        max_tokens=param['max_tokens'],
-        stop=param['stop_token'],
-        )
-    generation_results = llm_engine.generate(
-        prompts_list,
-        generation_config,
-        )
+        llm_engine = LLM(
+            model=param['pretrained_model'],
+            tokenizer_mode='auto',
+            dtype='float16',
+            max_model_len=param['n_ctx'],
+            )
+        generation_config = SamplingParams(
+            temperature=param['temperature'],
+            max_tokens=param['max_tokens'],
+            stop=param['stop_token'],
+            )
+        generation_results = llm_engine.generate(
+            prompts_list,
+            generation_config,
+            )
 
-    generated_texts = [result.outputs[0].text for result in generation_results]
-    full_generated_sequences = [
-        prompt + generated_text
-        for prompt, generated_text in zip(prompts_list, generated_texts)
-        ]
-    pd.DataFrame(
-        {param['target']: full_generated_sequences}
-        ).to_csv(f"{param['output_dir']}/generated_texts.csv", index=False)
-
-    log_manager.end_logging()
+        generated_texts = [result.outputs[0].text for result in generation_results]
+        full_generated_sequences = [
+            prompt + generated_text
+            for prompt, generated_text in zip(prompts_list, generated_texts)
+            ]
+        pd.DataFrame(
+            {param['target']: full_generated_sequences}
+            ).to_csv(f"{param['output_dir']}/generated_texts.csv", index=False)
 
 def generation_cpu(param: dict):
-    log_manager = LogManager(param)
-    log_manager.start_logging()
+    with LogManager(param):
+        logger.info("Generating using CPU ...")
 
-    logger.info("Generating using CPU ...")
+        prompts_list = gen_prompts(param)
+        logger.info(f'Extracted {len(prompts_list)} prompts for generation ...')
 
-    prompts_list = gen_prompts(param)
-    logger.info(f'Extracted {len(prompts_list)} prompts for generation ...')
-
-    device = 'cpu'
-    tokenizer = AutoTokenizer.from_pretrained(param['pretrained_model'])
-    model = AutoModelForCausalLM.from_pretrained(param['pretrained_model'])
-    generator = pipeline(
-        'text-generation',
-        model=model,
-        tokenizer=tokenizer,
-        device=device,
-        )
-
-    generated_texts = []
-    for i, prompt in enumerate(prompts_list):
-        logger.info(f"Generating {i+1}/{len(prompts_list)} ...")
-        outputs = generator(
-            prompt,
-            max_new_tokens=param['max_tokens'],
-            temperature=param['temperature'],
-            do_sample=True if param['temperature'] > 0 else False,
-            pad_token_id=tokenizer.pad_token_id,
+        device = 'cpu'
+        tokenizer = AutoTokenizer.from_pretrained(param['pretrained_model'])
+        model = AutoModelForCausalLM.from_pretrained(param['pretrained_model'])
+        generator = pipeline(
+            'text-generation',
+            model=model,
+            tokenizer=tokenizer,
+            device=device,
             )
-        generated_text = outputs[0]['generated_text'][len(prompt):]  # 去掉 prompt
-        generated_texts.append(generated_text)
 
-    full_generated_sequences = [
-        prompt + generated_text
-        for prompt, generated_text in zip(prompts_list, generated_texts)
-        ]
+        generated_texts = []
+        for i, prompt in enumerate(prompts_list):
+            logger.info(f"Generating {i+1}/{len(prompts_list)} ...")
+            outputs = generator(
+                prompt,
+                max_new_tokens=param['max_tokens'],
+                temperature=param['temperature'],
+                do_sample=True if param['temperature'] > 0 else False,
+                pad_token_id=tokenizer.pad_token_id,
+                )
+            generated_text = outputs[0]['generated_text'][len(prompt):]  # 去掉 prompt
+            generated_texts.append(generated_text)
 
-    pd.DataFrame(
-        {param['target']: full_generated_sequences}
-        ).to_csv(f"{param['output_dir']}/generated_texts.csv", index=False)
+        full_generated_sequences = [
+            prompt + generated_text
+            for prompt, generated_text in zip(prompts_list, generated_texts)
+            ]
 
-    log_manager.end_logging()
+        pd.DataFrame(
+            {param['target']: full_generated_sequences}
+            ).to_csv(f"{param['output_dir']}/generated_texts.csv", index=False)

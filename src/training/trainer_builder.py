@@ -1,3 +1,6 @@
+import math
+import os
+import logging
 import torch
 from typing import Callable
 from transformers import (
@@ -10,7 +13,14 @@ from transformers import (
     TrainerCallback,
     EvalPrediction,
     )
-from datasets import DatasetDict
+from datasets import DatasetDict, load_from_disk
+
+from src.dataset.data_processing import gen_dataset, hash_dataset
+from src.dataset.tokenizer import gen_tokenizer, tokenize
+from src.dataset.data_collator import DataCollatorForCLMWithLabels
+from src.model.model_utils import gen_model
+from src.utils.custom_module_loader import load_custom_module
+from src.utils.utils import hash_files
 
 class ClearCacheCallback(TrainerCallback):
     def on_evaluate(self, args, state, control, **kwargs):
@@ -63,7 +73,6 @@ def gen_trainer(
         disable_tqdm=True,
         )
 
-    tokenizer.pad_token = tokenizer.pad_token
     if data_collator is None:
         data_collator = DataCollatorForLanguageModeling(tokenizer, mlm=False)
 
@@ -88,16 +97,6 @@ def gen_trainer(
 
     return trainer
 
-
-import os
-import logging
-from datasets import load_from_disk
-from src.dataset.data_processing import gen_dataset, hash_dataset
-from src.dataset.tokenizer import gen_tokenizer, tokenize
-from src.dataset.data_collator import DataCollatorForCLMWithLabels
-from src.model.model_utils import gen_model
-from src.utils.custom_module_loader import load_custom_module
-from src.utils.utils import hash_files
 
 logger = logging.getLogger(__name__)
 
@@ -161,7 +160,6 @@ def build_trainer(param: dict) -> Trainer:
     if param.get('warmup_steps') is None:
         warmup_ratio = param.get('warmup_ratio', 0.0)
         if warmup_ratio > 0:
-            import math
             effective_batch = param['per_device_train_batch_size'] * param.get('gradient_accumulation_steps', 1)
             steps_per_epoch = len(train_val_dataset['train']) // effective_batch
             total_steps = steps_per_epoch * param['num_train_epochs']
