@@ -146,7 +146,7 @@ def build_trainer(param: dict) -> Trainer:
     has_labels = "labels" in train_val_dataset["train"].column_names
     data_collator = DataCollatorForCLMWithLabels(tokenizer) if has_labels else None
 
-    # Inject tokenizer into custom metrics module so compute_metrics can access it
+    # Inject tokenizer early (available now, needed by custom_mt internals)
     if custom_mt is not None:
         custom_mt.tokenizer = tokenizer
 
@@ -172,6 +172,20 @@ def build_trainer(param: dict) -> Trainer:
     model = gen_model(param, tokenizer)
     def model_init():
         return gen_model(param, tokenizer)
+
+    # Inject model + eval_dataset for autoregressive metrics (training mode only;
+    # HPO mode creates per-trial models so we fall back to teacher forcing)
+    if custom_mt is not None and param['mode'] == 'training':
+        custom_mt.model = model
+        custom_mt.eval_dataset = train_val_dataset["val"]
+        # nn.Module has no .device attr; read it from the first parameter
+        custom_mt.device = next(model.parameters()).device
+        # AR generation config — mirror model_parameters.yml Generation section
+        custom_mt.ar_temperature = param.get('temperature', 0.0)
+        custom_mt.ar_max_new_tokens = param.get('max_tokens', 100)
+        custom_mt.ar_start_token = param.get('start_token', '<Energy:>')
+        custom_mt.ar_stop_token = param.get('stop_token', '<END>')
+        custom_mt.ar_batch_size = param.get('per_device_train_batch_size', 8)
 
     if param['mode'] == 'training':
         trainer = gen_trainer(
