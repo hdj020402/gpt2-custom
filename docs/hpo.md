@@ -89,7 +89,7 @@ Exhaustive search over all combinations. **Every hyperparameter must use `type: 
 | Parameter | Type | Default | Notes |
 |-----------|------|---------|-------|
 | `seed` | `int` | `None` | Shuffles the grid order |
-| `search_space` | `dict` | `None` | Usually omitted — inferred from `hp_space` |
+| `search_space` | `dict` | auto | Auto-built from param `choices` — do **not** set manually |
 
 Example:
 ```yaml
