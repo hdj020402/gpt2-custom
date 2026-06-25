@@ -1,3 +1,5 @@
+import json
+import math
 import optuna
 import logging
 from typing import Callable
@@ -6,6 +8,28 @@ from src.training.trainer_builder import build_trainer
 from src.utils.utils import LogManager
 
 logger = logging.getLogger(__name__)
+
+# ---------------------------------------------------------------------------
+# Mappings from YAML string → optuna class
+# ---------------------------------------------------------------------------
+SAMPLER_MAP: dict[str, type] = {
+    name: getattr(optuna.samplers, name)
+    for name in (
+        'TPESampler', 'GridSampler', 'RandomSampler', 'CmaEsSampler',
+        'GPSampler', 'QMCSampler', 'NSGAIISampler', 'NSGAIIISampler',
+        'BruteForceSampler', 'PartialFixedSampler',
+    )
+}
+
+PRUNER_MAP: dict[str, type] = {
+    name: getattr(optuna.pruners, name)
+    for name in (
+        'MedianPruner', 'HyperbandPruner', 'ThresholdPruner',
+        'SuccessiveHalvingPruner', 'PercentilePruner', 'WilcoxonPruner',
+        'PatientPruner', 'NopPruner',
+    )
+}
+
 
 def make_hp_space(ht_param: dict[str, dict]) -> Callable[[optuna.Trial], dict]:
     def hp_space(trial: optuna.Trial) -> dict:
@@ -27,17 +51,120 @@ def make_hp_space(ht_param: dict[str, dict]) -> Callable[[optuna.Trial], dict]:
         return space
     return hp_space
 
+
+def _build_optuna_kwargs(ht_param: dict, param: dict, optuna_db: str) -> dict:
+    """Build sampler, pruner, and extra kwargs for ``hyperparameter_search``.
+
+    Returns a dict with keys: sampler, pruner, and any extra kwargs
+    (storage, study_name, load_if_exists, n_trials override).
+    """
+    opt_cfg = ht_param.get('optuna', {})
+    kwargs: dict = {}
+
+    # ── Sampler ──
+    sampler_cfg = opt_cfg.get('sampler')
+    if sampler_cfg:
+        sampler_cfg = dict(sampler_cfg)  # copy to avoid mutating original YAML dict
+        sampler_type = sampler_cfg.pop('type')
+        sampler_cls = SAMPLER_MAP[sampler_type]
+        sampler_seed = sampler_cfg.get('seed')
+        if sampler_seed is None and 'seed' in opt_cfg:
+            sampler_cfg['seed'] = opt_cfg['seed']
+        kwargs['sampler'] = sampler_cls(**sampler_cfg)
+
+    # ── Pruner ──
+    pruner_cfg = opt_cfg.get('pruner')
+    if pruner_cfg:
+        pruner_cfg = dict(pruner_cfg)  # copy to avoid mutating original YAML dict
+        pruner_type = pruner_cfg.pop('type')
+        pruner_cls = PRUNER_MAP[pruner_type]
+        kwargs['pruner'] = pruner_cls(**pruner_cfg)
+
+    # ── Continue trials ──
+    continue_cfg = opt_cfg.get('continue_trials', {})
+    if continue_cfg.get('continue', False):
+        kwargs['storage'] = continue_cfg.get('storage') or optuna_db
+        kwargs['study_name'] = continue_cfg.get('study_name') or f"hpo_{param['jobtype']}"
+        kwargs['load_if_exists'] = True
+
+    return kwargs
+
+
+def _validate_gridsampler(ht_param: dict, n_trials: int) -> int:
+    """Validate GridSampler constraints and return the effective n_trials.
+
+    For GridSampler: ensure every hyperparameter is categorical, compute the
+    total grid size, log a message if *n_trials* differs from the grid size,
+    and return the grid size.
+    For other samplers: return *n_trials* unchanged.
+    """
+    opt_cfg = ht_param.get('optuna', {})
+    sampler_cfg = opt_cfg.get('sampler', {})
+    if sampler_cfg.get('type') != 'GridSampler':
+        return n_trials
+
+    grid_size = 1
+    bad_params: list[str] = []
+
+    for hparam, attr in ht_param.items():
+        if hparam == 'optuna':
+            continue
+        if attr.get('type') != 'categorical':
+            bad_params.append(hparam)
+        else:
+            grid_size *= len(attr['choices'])
+
+    if bad_params:
+        raise ValueError(
+            f"GridSampler requires all hyperparameters to use type: categorical.\n"
+            f"Non-categorical parameters found: {bad_params}\n"
+            f"Either switch to categorical with explicit choices, "
+            f"or use a different sampler (e.g. TPESampler)."
+        )
+
+    if n_trials != grid_size:
+        logger.info(
+            f"GridSampler: overriding n_trials {n_trials} → {grid_size} "
+            f"({math.prod(len(ht_param[p]['choices'])
+             for p in ht_param if p != 'optuna')} combinations)"
+        )
+        return grid_size
+    return n_trials
+
+
 def hpo(param: dict, ht_param: dict):
+    opt_cfg = ht_param.get('optuna', {})
+    n_trials = _validate_gridsampler(ht_param, opt_cfg.get('n_trials', 20))
+
     with LogManager(param) as lm:
+        hp_kwargs = {
+            'storage': lm.optuna_db,
+            'study_name': f"hpo_{param['jobtype']}",
+        }
+        hp_kwargs.update(_build_optuna_kwargs(ht_param, param, lm.optuna_db))
+
         trainer = build_trainer(param)
+
+        # compute_objective: extract the metric that metric_for_best_model
+        # points to, instead of the default (eval_loss or sum-of-all-metrics).
+        metric_name = trainer.args.metric_for_best_model
+        def compute_objective(metrics: dict) -> float:
+            return metrics[metric_name]
+
         best_run = trainer.hyperparameter_search(
             hp_space=make_hp_space(ht_param),
             backend="optuna",
-            direction=ht_param['optuna']['direction'],
-            n_trials=ht_param['optuna']['n_trials'],
-            study_name=f"hpo_{param['jobtype']}",
-            storage=lm.optuna_db,
+            direction=opt_cfg['direction'],
+            n_trials=n_trials,
+            compute_objective=compute_objective,
+            **hp_kwargs,
         )
         logger.info(best_run)
+
+        # Persist best_run to JSON for later inspection / reuse
+        best_run_path = f"{param['output_dir']}/best_run.json"
+        with open(best_run_path, 'w') as f:
+            json.dump(best_run.hyperparameters, f, indent=2)
+        logger.info(f"Best hyperparameters saved to {best_run_path}")
 
     return best_run

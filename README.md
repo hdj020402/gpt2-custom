@@ -78,6 +78,14 @@ Based on the configured `mode` parameter, the program will perform corresponding
 
 - **Training mode (training/fine-tuning)**: Train or fine-tune GPT-2 model
 - **Hyperparameter optimization mode (hpo)**: Use Optuna for hyperparameter search
+
+**HPO usage notes:**
+
+- Use `warmup_steps` instead of the deprecated `warmup_ratio`.
+- `per_device_train_batch_size` and `gradient_accumulation_steps` are bounded by GPU memory — set them to the maximum your GPU supports; there is no need to include them in the search space.
+- When using `GridSampler`, every hyperparameter in `hparam_tuning.yml` must be `type: categorical` with an explicit `choices` list. Non-categorical parameters will cause an early error with a clear message.
+- The YAML `sampler` and `pruner` sections are fully wired — any optuna sampler/pruner class can be used by setting `type` (e.g. `TPESampler`, `MedianPruner`) plus its constructor arguments.
+- To resume an interrupted study, set `continue_trials.continue: true` and point `storage` / `study_name` to the existing database.
 - **Generation mode (generation)**: Generate texts using trained model
 
 ### 3. Compare Training Runs

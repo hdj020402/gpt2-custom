@@ -1,3 +1,15 @@
+# ============================================================================
+# HPO Hyperparameter Search Configuration
+# ============================================================================
+# Notes:
+#   - Use ``warmup_steps`` instead of the deprecated ``warmup_ratio``.
+#   - ``per_device_train_batch_size`` / ``gradient_accumulation_steps`` are
+#     bounded by GPU memory — set them to the maximum your GPU can handle;
+#     there is no need to include them in the search space.
+#   - When ``sampler.type`` is GridSampler, every hyperparameter MUST use
+#     ``type: categorical`` with an explicit ``choices`` list.
+# ============================================================================
+
 ### General ###
 optuna:
   sampler:
