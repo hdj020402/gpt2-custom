@@ -1,4 +1,5 @@
 import glob
+import inspect
 import json
 import math
 import optuna
@@ -54,6 +55,30 @@ def make_hp_space(ht_param: dict[str, dict]) -> Callable[[optuna.Trial], dict]:
     return hp_space
 
 
+def _warn_unknown_params(cls_name: str, cls: type, cfg: dict) -> None:
+    """Warn about YAML keys that don't match the target class constructor.
+
+    Extra keys are removed from *cfg* in-place so they don't cause a
+    ``TypeError`` at construction time.
+    """
+    sig = inspect.signature(cls.__init__)
+    valid = {
+        pn for pn, p in sig.parameters.items()
+        if pn != 'self'
+        and p.kind not in (inspect.Parameter.VAR_POSITIONAL,
+                           inspect.Parameter.VAR_KEYWORD)
+    }
+    unknown = set(cfg.keys()) - valid
+    if unknown:
+        logger.warning(
+            f"{cls_name} does not accept parameters: {sorted(unknown)}. "
+            f"Valid parameters are: {sorted(valid) if valid else '(none)'}. "
+            f"Ignoring unknown parameters."
+        )
+        for k in unknown:
+            del cfg[k]
+
+
 def _build_optuna_kwargs(ht_param: dict, param: dict, optuna_db: str) -> dict:
     """Build sampler, pruner, and extra kwargs for ``hyperparameter_search``.
 
@@ -72,6 +97,7 @@ def _build_optuna_kwargs(ht_param: dict, param: dict, optuna_db: str) -> dict:
         sampler_seed = sampler_cfg.get('seed')
         if sampler_seed is None and 'seed' in opt_cfg:
             sampler_cfg['seed'] = opt_cfg['seed']
+        _warn_unknown_params(sampler_type, sampler_cls, sampler_cfg)
         kwargs['sampler'] = sampler_cls(**sampler_cfg)
 
     # ── Pruner ──
@@ -80,6 +106,7 @@ def _build_optuna_kwargs(ht_param: dict, param: dict, optuna_db: str) -> dict:
         pruner_cfg = dict(pruner_cfg)  # copy to avoid mutating original YAML dict
         pruner_type = pruner_cfg.pop('type')
         pruner_cls = PRUNER_MAP[pruner_type]
+        _warn_unknown_params(pruner_type, pruner_cls, pruner_cfg)
         kwargs['pruner'] = pruner_cls(**pruner_cfg)
 
     # ── Continue trials ──
