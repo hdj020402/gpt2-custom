@@ -1,7 +1,60 @@
 # HPO Reference
 
-This page lists the optuna sampler / pruner classes available in `configs/hpo.yml`.
-Set `type` to any class name below and add its constructor parameters as YAML keys.
+This page covers:
+
+- **[Search space types](#search-space-types)** — how to define each hyperparameter in `hpo.yml`
+- **[Samplers](#samplers)** — available optuna sampler classes and their parameters
+- **[Pruners](#pruners)** — available optuna pruner classes and their parameters
+
+> **Note:** Only `TrainingArguments` fields can be tuned — the HF `hyperparameter_search`
+> sets each suggested value on the trainer's `args` object.  Model architecture parameters
+> (`n_embd`, `n_head`, etc.) are **not** tunable via HPO with the current setup.
+
+---
+
+## Search Space Types
+
+Each hyperparameter in `hpo.yml` must specify a `type` and the parameters for that type.
+
+| Type | Parameters | Notes |
+|------|-----------|-------|
+| `int` | `low`, `high`, `step` (default `1`), `log` (default `False`) | Integer values; set `log: true` for log-scale |
+| `float` | `low`, `high`, `step` (default `None`), `log` (default `False`) | Continuous values; `step` for discretisation, `log: true` for log-scale |
+| `uniform` | `low`, `high` | Uniform distribution (prefer `float`) |
+| `loguniform` | `low`, `high` | Log-uniform distribution (prefer `float` + `log: true`) |
+| `discrete_uniform` | `low`, `high`, `q` | Discretised uniform with step `q` (prefer `float` + `step`) |
+| `categorical` | `choices` | List of values; **required for GridSampler** |
+
+The `uniform`, `loguniform`, and `discrete_uniform` types are older optuna aliases — `float`
+with `step` / `log` is preferred in newer optuna versions, but all are supported.
+
+### Examples
+
+```yaml
+# Continuous log-scale
+learning_rate:
+  type: loguniform
+  low: 0.0001
+  high: 0.01
+
+# Integer with step
+warmup_steps:
+  type: int
+  low: 100
+  high: 2000
+  step: 100
+
+# Discrete choices
+lr_scheduler_type:
+  type: categorical
+  choices: [cosine, linear, constant_with_warmup]
+
+# Continuous uniform
+dropout:
+  type: uniform
+  low: 0.0
+  high: 0.3
+```
 
 ---
 
