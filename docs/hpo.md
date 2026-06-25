@@ -208,16 +208,6 @@ Prune when value crosses a fixed threshold.
 | `n_warmup_steps` | `int` | `0` | |
 | `interval_steps` | `int` | `1` | |
 
-### PatientPruner
-
-Wraps another pruner — only prunes after `patience` consecutive unimproved steps.
-
-| Parameter | Type | Default | Notes |
-|-----------|------|---------|-------|
-| `wrapped_pruner` | `optuna.pruner` | *required* | The underlying pruner |
-| `patience` | `int` | *required* | Consecutive steps without improvement before pruning |
-| `min_delta` | `float` | `0.0` | Minimum change to count as "improvement" |
-
 ### WilcoxonPruner
 
 Statistical test — prune if performance is significantly worse than the best trial.

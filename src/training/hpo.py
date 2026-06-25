@@ -29,7 +29,7 @@ PRUNER_MAP: dict[str, type] = {
     for name in (
         'MedianPruner', 'HyperbandPruner', 'ThresholdPruner',
         'SuccessiveHalvingPruner', 'PercentilePruner', 'WilcoxonPruner',
-        'PatientPruner', 'NopPruner',
+        'NopPruner',
     )
 }
 
