@@ -1,7 +1,9 @@
+import glob
 import json
 import math
 import optuna
 import logging
+import shutil
 from typing import Callable
 
 from src.training.trainer_builder import build_trainer
@@ -166,5 +168,11 @@ def hpo(param: dict, ht_param: dict):
         with open(best_run_path, 'w') as f:
             json.dump(best_run.hyperparameters, f, indent=2)
         logger.info(f"Best hyperparameters saved to {best_run_path}")
+
+        # Remove per-trial checkpoints (HPO checkpoints are not production-ready;
+        # run a dedicated training with the best hyperparameters instead).
+        for ckpt_dir in glob.glob(f"{param['output_dir']}/checkpoint-*"):
+            shutil.rmtree(ckpt_dir)
+            logger.info(f"Cleaned up checkpoint: {ckpt_dir}")
 
     return best_run

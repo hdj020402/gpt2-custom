@@ -25,7 +25,7 @@ def main():
     if param['mode'] in ['training', 'fine-tuning']:
         training(param)
     elif param['mode'] == 'hpo':
-        with open('configs/hparam_tuning.yml', 'r', encoding='utf-8') as ht:
+        with open('configs/hpo.yml', 'r', encoding='utf-8') as ht:
             import yaml
             ht_param: dict[str, dict] = yaml.full_load(ht)
         hpo(param, ht_param)

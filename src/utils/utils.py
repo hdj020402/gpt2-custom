@@ -65,6 +65,8 @@ class LogManager:
         os.makedirs(self.param['output_dir'], exist_ok=True)
         log_file_path = f"{self.param['output_dir']}/{self._logger_name}.log"
         shutil.copy('configs/model_parameters.yml', self.param['output_dir'])
+        if self.param['mode'] == 'hpo':
+            shutil.copy('configs/hpo.yml', self.param['output_dir'])
 
         self.logger = setup_logger(self._logger_name, log_file_path)
 
