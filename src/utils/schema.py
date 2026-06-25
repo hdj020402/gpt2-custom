@@ -91,6 +91,12 @@ class AppConfig:
                     f"  Copy configs/model_parameters.example.yml → configs/model_parameters.yml and fill in all fields."
                 )
 
+        if ".." in self.jobtype or self.jobtype.startswith("/"):
+            raise ValueError(
+                f"model_parameters.yml: 'jobtype' must not contain '..' or start with '/' "
+                f"(got '{self.jobtype}')."
+            )
+
         valid_modes = ("training", "fine-tuning", "hpo", "generation")
         if self.mode not in valid_modes:
             raise ValueError(
