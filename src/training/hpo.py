@@ -91,6 +91,13 @@ def _build_optuna_kwargs(ht_param: dict, param: dict, optuna_db: str) -> dict:
         sampler_seed = sampler_cfg.get('seed')
         if sampler_seed is None and 'seed' in opt_cfg:
             sampler_cfg['seed'] = opt_cfg['seed']
+        # GridSampler requires the search space at construction time
+        if sampler_type == 'GridSampler':
+            sampler_cfg['search_space'] = {
+                hp: attr['choices']
+                for hp, attr in ht_param.items()
+                if hp != 'optuna' and 'choices' in attr
+            }
         _validate_known_params(sampler_type, sampler_cls, sampler_cfg)
         kwargs['sampler'] = sampler_cls(**sampler_cfg)
 
