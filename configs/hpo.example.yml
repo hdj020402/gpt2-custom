@@ -3,11 +3,13 @@
 # ============================================================================
 # Notes:
 #   - Use ``warmup_steps`` instead of the deprecated ``warmup_ratio``.
-#   - ``per_device_train_batch_size`` / ``gradient_accumulation_steps`` are
-#     bounded by GPU memory — set them to the maximum your GPU can handle;
-#     there is no need to include them in the search space.
+#   - Do NOT include ``per_device_train_batch_size`` or
+#     ``gradient_accumulation_steps`` — they are resource constraints (GPU
+#     memory), not hyperparameters.  Set them to the maximum your GPU can
+#     handle in ``model_parameters.yml``.
 #   - When ``sampler.type`` is GridSampler, every hyperparameter MUST use
 #     ``type: categorical`` with an explicit ``choices`` list.
+#   - See ``docs/hpo.md`` for the full sampler / pruner reference.
 # ============================================================================
 
 ### General ###
@@ -25,18 +27,7 @@ optuna:
     storage: null
     study_name: null
 
-### Dataset ###
-per_device_train_batch_size:
-  type: discrete_uniform
-  low: 32
-  high: 256
-  q: 32
-
-### Model ###
-gradient_accumulation_steps:
-  type: discrete_uniform
-  low: 1
-  high: 10
+### Training ###
 learning_rate:
   type: loguniform
   low: 0.0001
@@ -46,10 +37,26 @@ weight_decay:
   low: 0.01
   high: 0.1
 max_grad_norm:
-  type: loguniform
+  type: float
   low: 0.1
-  high: 1.0
-warmup_ratio:
+  high: 5.0
+warmup_steps:
+  type: int
+  low: 100
+  high: 2000
+  step: 100
+adam_beta1:
   type: uniform
-  low: 0.01
-  high: 0.1
+  low: 0.85
+  high: 0.95
+adam_beta2:
+  type: uniform
+  low: 0.90
+  high: 0.999
+adam_epsilon:
+  type: loguniform
+  low: 1e-9
+  high: 1e-6
+lr_scheduler_type:
+  type: categorical
+  choices: [cosine, linear, constant_with_warmup]
