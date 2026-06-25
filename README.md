@@ -19,6 +19,8 @@ A custom implementation of GPT-2 architecture supporting model training, hyperpa
 │   ├── logging_config.example.json   # vLLM logging configuration template
 │   └── gpt2-original/               # GPT-2 tokenizer configuration files
 ├── custom/                           # User-defined custom modules
+├── docs/                               # Documentation
+│   └── hpo.md                          # Sampler / pruner reference
 ├── scripts/                          # Utility scripts
 │   └── scan_runs.py                  # Training run comparison tool
 ├── src/                              # Source code
@@ -86,6 +88,7 @@ Based on the configured `mode` parameter, the program will perform corresponding
 - When using `GridSampler`, every hyperparameter in `hpo.yml` must be `type: categorical` with an explicit `choices` list. Non-categorical parameters will cause an early error with a clear message.
 - The YAML `sampler` and `pruner` sections are fully wired — any optuna sampler/pruner class can be used by setting `type` (e.g. `TPESampler`, `MedianPruner`) plus its constructor arguments.
 - To resume an interrupted study, set `continue_trials.continue: true` and point `storage` / `study_name` to the existing database.
+- See [`docs/hpo.md`](docs/hpo.md) for the full sampler and pruner reference with parameters and defaults.
 - **Generation mode (generation)**: Generate texts using trained model
 
 ### 3. Compare Training Runs
