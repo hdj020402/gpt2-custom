@@ -9,7 +9,7 @@ test.ipynb
 database/
 data_prep/
 configs/model_parameters.yml
-configs/hparam_tuning.yml
+configs/hpo.yml
 configs/logging_config.json
 custom/*
 !custom/custom_tokenize.example.py
