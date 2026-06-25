@@ -60,3 +60,9 @@ adam_epsilon:
 lr_scheduler_type:
   type: categorical
   choices: [cosine, linear, constant_with_warmup]
+
+### Model Architecture ###
+dropout:
+  type: uniform
+  low: 0.0
+  high: 0.3

@@ -170,8 +170,11 @@ def build_trainer(param: dict) -> Trainer:
             param['warmup_steps'] = 0
 
     model = gen_model(param, tokenizer)
-    def model_init():
-        return gen_model(param, tokenizer)
+    def model_init(trial=None):
+        cfg = dict(param)
+        if trial is not None:
+            cfg.update(trial.params)
+        return gen_model(cfg, tokenizer)
 
     # Inject model + eval_dataset for autoregressive metrics (training mode only;
     # HPO mode creates per-trial models so we fall back to teacher forcing)

@@ -6,9 +6,9 @@ This page covers:
 - **[Samplers](#samplers)** — available optuna sampler classes and their parameters
 - **[Pruners](#pruners)** — available optuna pruner classes and their parameters
 
-> **Note:** Only `TrainingArguments` fields can be tuned — the HF `hyperparameter_search`
-> sets each suggested value on the trainer's `args` object.  Model architecture parameters
-> (`n_embd`, `n_head`, etc.) are **not** tunable via HPO with the current setup.
+> **Note:** Both `TrainingArguments` fields and model architecture params can be
+> tuned.  The latter are passed to `model_init(trial)` and merged into the config
+> before constructing the model.
 
 ---
 
