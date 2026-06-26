@@ -178,8 +178,11 @@ def hpo(param: dict, ht_param: dict):
         # compute_objective: extract the metric that metric_for_best_model
         # points to, instead of the default (eval_loss or sum-of-all-metrics).
         metric_name = trainer.args.metric_for_best_model
+        # Trainer prefixes all eval metrics with "eval_" (see trainer.py line ~2818).
+        # Match the logic in trainer._evaluate so the lookup succeeds.
+        hp_key = f"eval_{metric_name}" if not metric_name.startswith("eval_") else metric_name
         def compute_objective(metrics: dict) -> float:
-            return metrics[metric_name]
+            return metrics[hp_key]
 
         best_run = trainer.hyperparameter_search(
             hp_space=make_hp_space(ht_param),
