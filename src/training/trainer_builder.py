@@ -176,14 +176,11 @@ def build_trainer(param: dict) -> Trainer:
             cfg.update(trial.params)
         return gen_model(cfg, tokenizer)
 
-    # Inject model + eval_dataset for autoregressive metrics (training mode only;
-    # HPO mode creates per-trial models so we fall back to teacher forcing)
-    if custom_mt is not None and param['mode'] == 'training':
-        custom_mt.model = model
+    # Inject eval_dataset + AR generation config for autoregressive metrics.
+    # Model is injected at eval time via a wrapper (below) so it works for both
+    # training (fixed model) and HPO (per-trial model from model_init).
+    if custom_mt is not None and compute_metrics_fn is not None:
         custom_mt.eval_dataset = train_val_dataset["val"]
-        # nn.Module has no .device attr; read it from the first parameter
-        custom_mt.device = next(model.parameters()).device
-        # AR generation config — mirror model_parameters.yml Generation section
         custom_mt.ar_temperature = param.get('temperature', 0.0)
         custom_mt.ar_max_new_tokens = param.get('max_tokens', 100)
         custom_mt.ar_start_token = param.get('start_token', '<Energy:>')
@@ -216,5 +213,15 @@ def build_trainer(param: dict) -> Trainer:
             metric_for_best_model=metric_name,
             greater_is_better=greater,
             )
+
+    # Wrap compute_metrics to inject current model at eval time.
+    # Works for both training (fixed model) and HPO (per-trial model from model_init).
+    if custom_mt is not None and compute_metrics_fn is not None:
+        _orig_fn = compute_metrics_fn
+        def _ar_metrics(eval_pred):
+            custom_mt.model = trainer.model
+            custom_mt.device = next(trainer.model.parameters()).device
+            return _orig_fn(eval_pred)
+        trainer.compute_metrics = _ar_metrics
 
     return trainer
