@@ -11,7 +11,7 @@ A custom implementation of GPT-2 architecture supporting model training, hyperpa
 
 ## Directory Structure
 
-```
+```plain text
 .
 ├── configs/                          # Configuration files
 │   ├── model_parameters.example.yml  # Model parameter configuration template
@@ -66,6 +66,7 @@ cp configs/hpo.example.yml configs/hpo.yml
 ```
 
 In `configs/model_parameters.yml`, set the following key parameters:
+
 - `mode`: Running mode (training/fine-tuning/hpo/generation)
 - `jobtype`: Job type name
 - Dataset paths and other parameters
@@ -115,15 +116,19 @@ See `--help` for all options.
 ## Component Descriptions
 
 ### Data Processing (src/dataset/)
+
 Responsible for data loading, preprocessing, and tokenizer construction.
 
 ### Model Training (src/training/)
+
 Contains model training and hyperparameter optimization functionality, using Hugging Face Transformers library for training.
 
 ### Text Generation (src/generation/)
+
 Efficient text generation based on vLLM engine (GPU) or Transformers pipeline (CPU).
 
 ### Model Definition (src/model/)
+
 GPT-2 model architecture definition and construction tools.
 
 ## Custom Module Extension
@@ -145,14 +150,14 @@ cp custom/custom_metrics.example.py custom/custom_metrics.py
 ### custom_tokenize module
 
 | Name | Type | Purpose |
-|------|------|---------|
+| ------ | ------ | --------- |
 | `tokenize(tokenizer, batch, target, context_length)` | function | Override default tokenization (e.g. label masking) |
 | `tk_batched` | `bool` | Control `dataset.map(batched=?)` (default: `True`) |
 
 ### custom_metrics module
 
 | Name | Type | Purpose |
-|------|------|---------|
+| ------ | ------ | --------- |
 | `compute_metrics(eval_pred)` | function | Custom evaluation metrics |
 | `preprocess_logits_for_metrics(logits, labels)` | function | Pre-process logits before metrics (e.g. argmax) |
 | `metric_for_best_model` | `str` | Metric name for best model selection (default: `"eval_loss"`) |
@@ -161,6 +166,7 @@ cp custom/custom_metrics.example.py custom/custom_metrics.py
 When both are `null` (default), all behavior is identical to the standard training pipeline.
 
 **Key behaviors:**
+
 - If the custom `tokenize` returns a `labels` column, the framework automatically switches to a data collator that pads labels with `-100`.
 - The tokenizer is injected into the custom metrics module at runtime, accessible via `sys.modules[__name__].tokenizer` in `compute_metrics`.
 - Only the `custom_tokenize` file is included in the dataset cache hash. Modifying `custom_metrics` does **not** trigger re-tokenization.

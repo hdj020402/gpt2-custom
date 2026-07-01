@@ -17,7 +17,7 @@ This page covers:
 Each hyperparameter in `hpo.yml` must specify a `type` and the parameters for that type.
 
 | Type | Parameters | Notes |
-|------|-----------|-------|
+| ------ | ----------- | ------- |
 | `int` | `low`, `high`, `step` (default `1`), `log` (default `False`) | Integer values; set `log: true` for log-scale |
 | `float` | `low`, `high`, `step` (default `None`), `log` (default `False`) | Continuous values; `step` for discretisation, `log: true` for log-scale |
 | `uniform` | `low`, `high` | Uniform distribution (prefer `float`) |
@@ -67,7 +67,7 @@ Samplers decide *how* the next trial's hyperparameters are chosen.
 Tree-structured Parzen Estimator — models promising regions and samples from them.
 
 | Parameter | Type | Default | Notes |
-|-----------|------|---------|-------|
+| ----------- | ------ | --------- | ------- |
 | `seed` | `int` | `None` | Reproducibility |
 | `n_startup_trials` | `int` | `10` | Random sampling before TPE kicks in |
 | `n_ei_candidates` | `int` | `24` | Candidates per sampling |
@@ -75,6 +75,7 @@ Tree-structured Parzen Estimator — models promising regions and samples from t
 | `constant_liar` | `bool` | `False` | Use constant-liar for parallel HPO |
 
 Example:
+
 ```yaml
 sampler:
   type: TPESampler
@@ -87,11 +88,12 @@ sampler:
 Exhaustive search over all combinations. **Every hyperparameter must use `type: categorical`.**
 
 | Parameter | Type | Default | Notes |
-|-----------|------|---------|-------|
+| ----------- | ------ | --------- | ------- |
 | `seed` | `int` | `None` | Shuffles the grid order |
 | `search_space` | `dict` | auto | Auto-built from param `choices` — do **not** set manually |
 
 Example:
+
 ```yaml
 sampler:
   type: GridSampler
@@ -103,7 +105,7 @@ sampler:
 Uniform random sampling from the search space.
 
 | Parameter | Type | Default |
-|-----------|------|---------|
+| ----------- | ------ | --------- |
 | `seed` | `int` | `None` |
 
 ### CmaEsSampler
@@ -112,7 +114,7 @@ Covariance Matrix Adaptation Evolution Strategy — population-based, good for c
 spaces where parameters interact.
 
 | Parameter | Type | Default | Notes |
-|-----------|------|---------|-------|
+| ----------- | ------ | --------- | ------- |
 | `seed` | `int` | `None` | |
 | `n_startup_trials` | `int` | `1` | |
 | `popsize` | `int` | `None` | Population size (auto if unset) |
@@ -124,7 +126,7 @@ spaces where parameters interact.
 Quasi-Monte Carlo — low-discrepancy sequences for even coverage.
 
 | Parameter | Type | Default | Notes |
-|-----------|------|---------|-------|
+| ----------- | ------ | --------- | ------- |
 | `seed` | `int` | `None` | |
 | `qmc_type` | `str` | `"sobol"` | `"sobol"` or `"halton"` |
 | `scramble` | `bool` | `False` | Randomize sequence (better for high-dim) |
@@ -141,13 +143,14 @@ Prune if the current value is worse than the median **at the same step** across 
 Safe and simple.
 
 | Parameter | Type | Default | Notes |
-|-----------|------|---------|-------|
+| ----------- | ------ | --------- | ------- |
 | `n_startup_trials` | `int` | `5` | Don't prune before N completed trials |
 | `n_warmup_steps` | `int` | `0` | Don't prune before step N in each trial |
 | `interval_steps` | `int` | `1` | Check pruning every N steps |
 | `n_min_trials` | `int` | `1` | Min trials at a step before pruning there |
 
 Example:
+
 ```yaml
 pruner:
   type: MedianPruner
@@ -161,13 +164,14 @@ Multi-fidelity pruner — runs many configurations with few resources, progressi
 allocating more budget to the best.
 
 | Parameter | Type | Default | Notes |
-|-----------|------|---------|-------|
+| ----------- | ------ | --------- | ------- |
 | `min_resource` | `int` | `1` | Minimum steps before first pruning |
 | `max_resource` | `int/str` | `"auto"` | Maximum steps (auto = full training) |
 | `reduction_factor` | `int` | `3` | Keep 1/N each round (higher = more aggressive) |
 | `bootstrap_count` | `int` | `0` | Bootstrap samples for uncertainty |
 
 Example:
+
 ```yaml
 pruner:
   type: HyperbandPruner
@@ -180,7 +184,7 @@ pruner:
 Simpler version of Hyperband — fixed budget allocation.
 
 | Parameter | Type | Default | Notes |
-|-----------|------|---------|-------|
+| ----------- | ------ | --------- | ------- |
 | `min_resource` | `int/str` | `"auto"` | Minimum steps |
 | `reduction_factor` | `int` | `4` | Keep 1/N each round |
 | `min_early_stopping_rate` | `int` | `0` | Minimum halving rounds |
@@ -191,7 +195,7 @@ Simpler version of Hyperband — fixed budget allocation.
 Prune trials in the bottom K% at each step.
 
 | Parameter | Type | Default | Notes |
-|-----------|------|---------|-------|
+| ----------- | ------ | --------- | ------- |
 | `percentile` | `float` | *required* | Bottom percentile to prune (e.g. `25`) |
 | `n_startup_trials` | `int` | `5` | |
 | `n_warmup_steps` | `int` | `0` | |
@@ -202,7 +206,7 @@ Prune trials in the bottom K% at each step.
 Prune when value crosses a fixed threshold.
 
 | Parameter | Type | Default | Notes |
-|-----------|------|---------|-------|
+| ----------- | ------ | --------- | ------- |
 | `lower` | `float` | `None` | Prune if value < lower (for `direction: minimize`) |
 | `upper` | `float` | `None` | Prune if value > upper (for `direction: maximize`) |
 | `n_warmup_steps` | `int` | `0` | |
@@ -213,7 +217,7 @@ Prune when value crosses a fixed threshold.
 Statistical test — prune if performance is significantly worse than the best trial.
 
 | Parameter | Type | Default | Notes |
-|-----------|------|---------|-------|
+| ----------- | ------ | --------- | ------- |
 | `p_threshold` | `float` | `0.1` | p-value cutoff |
 | `n_startup_steps` | `int` | `2` | Wait before testing |
 
