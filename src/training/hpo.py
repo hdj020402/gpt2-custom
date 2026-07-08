@@ -207,8 +207,11 @@ def hpo(param: dict, ht_param: dict):
 
             best_run_path = f"{param['output_dir']}/best_run.json"
             with open(best_run_path, 'w') as f:
-                json.dump(best_run.hyperparameters, f, indent=2)
-            logger.info(f"Best hyperparameters saved to {best_run_path}")
+                json.dump({
+                    "objective": best_run.objective,
+                    "hyperparameters": best_run.hyperparameters,
+                }, f, indent=2)
+            logger.info(f"Best run (objective={best_run.objective}) saved to {best_run_path}")
 
             for ckpt_dir in glob.glob(f"{param['output_dir']}/checkpoint-*"):
                 try:
