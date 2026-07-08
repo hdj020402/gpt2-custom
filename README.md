@@ -92,7 +92,38 @@ Based on the configured `mode` parameter, the program will perform corresponding
 - See [`docs/hpo.md`](docs/hpo.md) for the full sampler and pruner reference with parameters and defaults.
 - **Generation mode (generation)**: Generate texts using trained model
 
-### 3. Compare Training Runs
+### 3. Multi-GPU Training (DDP)
+
+The framework supports multi-GPU training via PyTorch DistributedDataParallel (DDP) with zero code changes to config files — it auto-detects distributed mode from environment variables set by `torchrun`.
+
+**Launching:**
+
+```bash
+# Single node, 4 GPUs
+torchrun --nproc_per_node=4 main.py
+
+# Multi-node (2 nodes, 4 GPUs each)
+# Node 0 (master):
+torchrun --nproc_per_node=4 --nnodes=2 --node_rank=0 \
+    --master_addr=<ip> --master_port=29500 main.py
+# Node 1:
+torchrun --nproc_per_node=4 --nnodes=2 --node_rank=1 \
+    --master_addr=<ip> --master_port=29500 main.py
+```
+
+**How it works:**
+
+- Each GPU runs an independent process, each processing `per_device_train_batch_size` samples.
+- Global batch size = `per_device_train_batch_size × gradient_accumulation_steps × world_size`.
+- Gradients are synchronized across GPUs via NCCL all-reduce (handled automatically by HuggingFace Trainer).
+- Only rank 0 writes logs and runs tokenization; other ranks load the cached result.
+- Each rank gets `seed + rank` for diverse data shuffling across workers.
+
+**Scaling the learning rate:**
+
+When scaling to more GPUs while keeping `per_device_train_batch_size` the same (weak scaling), consider scaling the learning rate linearly: LR × world_size. The `warmup_steps` calculation automatically accounts for the larger global batch.
+
+### 4. Compare Training Runs
 
 ```bash
 # CSV (all params + metrics, auto-discovered) — open in Excel / pandas

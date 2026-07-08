@@ -13,14 +13,48 @@ from src.generation.generate import generation, generation_cpu
 from src.utils.setup_seed import setup_seed
 
 
+def _get_rank() -> int:
+    """Return the rank of the current process in distributed mode, or 0."""
+    if torch.distributed.is_available() and torch.distributed.is_initialized():
+        return torch.distributed.get_rank()
+    return 0
+
+
+def _get_world_size() -> int:
+    """Return the number of processes in distributed mode, or 1."""
+    if torch.distributed.is_available() and torch.distributed.is_initialized():
+        return torch.distributed.get_world_size()
+    return 1
+
+
 def main():
     TIME = time.strftime('%b_%d_%Y_%H%M%S', time.localtime())
     param = load_config()
     param['time'] = TIME
 
+    # Detect distributed environment (set by torchrun / torch.distributed.launch).
+    local_rank = int(os.environ.get('LOCAL_RANK', -1))
+    is_distributed = local_rank != -1
+
     seed = param['seed']
-    setup_seed(seed)
+    setup_seed(seed, rank=max(0, local_rank))
+
+    # torch.use_deterministic_algorithms must be called BEFORE
+    # init_process_group (NCCL init triggers CUDA context creation).
     torch.use_deterministic_algorithms(True)
+
+    # Initialize process group early so barriers in build_trainer() work.
+    # Trainer detects this and skips its own init.
+    if is_distributed and not torch.distributed.is_initialized():
+        torch.distributed.init_process_group(backend="nccl")
+
+    rank = _get_rank()
+    world_size = _get_world_size()
+
+    if rank == 0:
+        if is_distributed:
+            print(f"[DDP] World size: {world_size}, Local rank: {local_rank}")
+        print(f"Mode: {param['mode']}, Job: {param['jobtype']}, Seed: {seed}")
 
     if param['mode'] in ['training', 'fine-tuning']:
         training(param)

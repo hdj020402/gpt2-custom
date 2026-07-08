@@ -50,6 +50,9 @@ def gen_trainer(
 
         num_train_epochs=param['num_train_epochs'],
         fp16=True,
+        ddp_find_unused_parameters=False,
+        dataloader_drop_last=True,
+        eval_use_gather_object=False,
 
         learning_rate=param['learning_rate'],
         weight_decay=param['weight_decay'],
@@ -100,6 +103,32 @@ def gen_trainer(
 
 logger = logging.getLogger(__name__)
 
+
+def _get_rank() -> int:
+    """Return distributed rank, or 0 in non-distributed mode."""
+    if torch.distributed.is_available() and torch.distributed.is_initialized():
+        return torch.distributed.get_rank()
+    return 0
+
+
+def _is_main_process() -> bool:
+    """Return True on rank 0, or in non-distributed (single-GPU) mode."""
+    return _get_rank() == 0
+
+
+def _barrier() -> None:
+    """Synchronize all processes; no-op in non-distributed mode."""
+    if torch.distributed.is_available() and torch.distributed.is_initialized():
+        torch.distributed.barrier()
+
+
+def _get_world_size() -> int:
+    """Return distributed world size, or 1 in non-distributed mode."""
+    if torch.distributed.is_available() and torch.distributed.is_initialized():
+        return torch.distributed.get_world_size()
+    return 1
+
+
 def build_trainer(param: dict) -> Trainer:
     custom_tk = load_custom_module(param.get('custom_tokenize'), name="custom_tokenize")
     custom_mt = load_custom_module(param.get('custom_metrics'), name="custom_metrics")
@@ -124,23 +153,29 @@ def build_trainer(param: dict) -> Trainer:
 
     os.makedirs('./cache/tokenized', exist_ok=True)
     cache_path = f"./cache/tokenized/{cache_key}"
-    if os.path.exists(cache_path):
-        logger.info(f"Loading cached tokenized dataset from {cache_path} ...")
-        train_val_dataset = load_from_disk(cache_path)
-    else:
-        logger.info("Tokenizing dataset ...")
-        train_val_dataset = datasets['train_val'].map(
-            lambda x: tokenize_fn(
-                tokenizer=tokenizer,
-                batch=x,
-                target=param['target'],
-                context_length=param['n_ctx']
-                ),
-            batched=tk_batched,
-            remove_columns=datasets['train_val']['train'].column_names,
-            num_proc=param['tk_num_proc']
-            )
-        train_val_dataset.save_to_disk(cache_path, num_proc=param['tk_num_proc'])
+
+    # Only rank 0 performs tokenization to avoid race conditions in DDP mode.
+    # All other ranks wait at the barrier, then load the cached result.
+    if _is_main_process():
+        if not os.path.exists(cache_path):
+            logger.info("Tokenizing dataset ...")
+            train_val_dataset = datasets['train_val'].map(
+                lambda x: tokenize_fn(
+                    tokenizer=tokenizer,
+                    batch=x,
+                    target=param['target'],
+                    context_length=param['n_ctx']
+                    ),
+                batched=tk_batched,
+                remove_columns=datasets['train_val']['train'].column_names,
+                num_proc=param['tk_num_proc']
+                )
+            train_val_dataset.save_to_disk(cache_path, num_proc=param['tk_num_proc'])
+
+    _barrier()
+
+    logger.info(f"Loading tokenized dataset from {cache_path} ...")
+    train_val_dataset = load_from_disk(cache_path)
 
     # Auto-detect data collator based on whether labels exist
     has_labels = "labels" in train_val_dataset["train"].column_names
@@ -160,7 +195,9 @@ def build_trainer(param: dict) -> Trainer:
     if param.get('warmup_steps') is None:
         warmup_ratio = param.get('warmup_ratio', 0.0)
         if warmup_ratio > 0:
-            effective_batch = param['per_device_train_batch_size'] * param.get('gradient_accumulation_steps', 1)
+            effective_batch = (param['per_device_train_batch_size']
+                               * param.get('gradient_accumulation_steps', 1)
+                               * _get_world_size())
             steps_per_epoch = len(train_val_dataset['train']) // effective_batch
             total_steps = steps_per_epoch * param['num_train_epochs']
             param['warmup_steps'] = math.ceil(warmup_ratio * total_steps)
@@ -179,8 +216,20 @@ def build_trainer(param: dict) -> Trainer:
     # Inject eval_dataset + AR generation config for autoregressive metrics.
     # Model is injected at eval time via a wrapper (below) so it works for both
     # training (fixed model) and HPO (per-trial model from model_init).
+    #
+    # In DDP mode, each rank gets 1/N of the eval dataset so that slow AR
+    # generation is parallelized across GPUs (N ranks → ~N× speedup on eval).
     if custom_mt is not None and compute_metrics_fn is not None:
-        custom_mt.eval_dataset = train_val_dataset["val"]
+        full_eval = train_val_dataset["val"]
+        rank = _get_rank()
+        world = _get_world_size()
+        if world > 1:
+            shard_size = len(full_eval) // world
+            start = rank * shard_size
+            end = start + shard_size if rank < world - 1 else len(full_eval)
+            custom_mt.eval_dataset = full_eval.select(range(start, end))
+        else:
+            custom_mt.eval_dataset = full_eval
         custom_mt.ar_temperature = param.get('temperature', 0.0)
         custom_mt.ar_max_new_tokens = param.get('max_tokens', 100)
         custom_mt.ar_start_token = param.get('start_token', '<Energy:>')

@@ -1,4 +1,3 @@
-import torch
 from transformers import GPT2LMHeadModel, AutoConfig, PreTrainedTokenizer
 
 def gen_model(param: dict, tokenizer: PreTrainedTokenizer):
@@ -18,8 +17,6 @@ def gen_model(param: dict, tokenizer: PreTrainedTokenizer):
         pad_token_id=tokenizer.pad_token_id,
     )
 
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
     model = GPT2LMHeadModel(config)
-    model = model.to(device)
+    # Device placement is handled by HuggingFace Trainer (single-GPU and DDP).
     return model
