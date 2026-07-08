@@ -197,13 +197,19 @@ def hpo(param: dict, ht_param: dict):
         # Persist best_run to JSON for later inspection / reuse
         best_run_path = f"{param['output_dir']}/best_run.json"
         with open(best_run_path, 'w') as f:
-            json.dump(best_run.hyperparameters, f, indent=2)
-        logger.info(f"Best hyperparameters saved to {best_run_path}")
+            json.dump({
+                "objective": best_run.objective,
+                "hyperparameters": best_run.hyperparameters,
+            }, f, indent=2)
+        logger.info(f"Best run (objective={best_run.objective}) saved to {best_run_path}")
 
         # Remove per-trial checkpoints (HPO checkpoints are not production-ready;
         # run a dedicated training with the best hyperparameters instead).
         for ckpt_dir in glob.glob(f"{param['output_dir']}/checkpoint-*"):
-            shutil.rmtree(ckpt_dir)
-            logger.info(f"Cleaned up checkpoint: {ckpt_dir}")
+            try:
+                shutil.rmtree(ckpt_dir)
+                logger.info(f"Cleaned up checkpoint: {ckpt_dir}")
+            except FileNotFoundError:
+                pass
 
     return best_run
