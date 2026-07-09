@@ -193,7 +193,6 @@ def hpo(param: dict, ht_param: dict):
         # each trial.
         class _FixObjectiveCallback(TrainerCallback):
             def on_train_end(self, args, state, control, **kwargs):
-                _ = (args, control, kwargs)
                 if state.best_metric is not None:
                     trainer.objective = state.best_metric
 
