@@ -31,10 +31,19 @@ def main():
     db = sqlite3.connect(str(db_file))
 
     trials = db.execute(
-        "SELECT t.number, t.state, tv.value "
+        "SELECT t.number, t.trial_id, t.state, tv.value "
         "FROM trials t LEFT JOIN trial_values tv ON t.trial_id = tv.trial_id "
         "ORDER BY t.number"
     ).fetchall()
+
+    # Per-trial best (min) intermediate value; fallback to trial_value.
+    intermediates = db.execute(
+        "SELECT trial_id, step, intermediate_value FROM trial_intermediate_values ORDER BY trial_id, step"
+    ).fetchall()
+    best_iv: dict[int, float] = {}
+    for tid, _step, val in intermediates:
+        if tid not in best_iv or val < best_iv[tid]:
+            best_iv[tid] = val
 
     params = db.execute(
         "SELECT t.number, tp.param_name, tp.param_value, tp.distribution_json "
@@ -53,15 +62,17 @@ def main():
         trial_p[num][name] = choices[int(val)] if choices else val
 
     # Build rows
-    header = ["#", "objective"] + param_names
+    header = ["#", "best", "last"] + param_names
     rows = []
-    for num, _state, value in trials:
+    for num, tid, _state, final in trials:
+        best = best_iv.get(tid)           # None if no intermediates
         p = trial_p.get(num, {})
         row = [num]
-        if csv_mode:
-            row.append(f"{value:.6f}" if value is not None else "")
-        else:
-            row.append(f"{value:.4f}" if value is not None else "N/A")
+        fmt_n = ".6f" if csv_mode else ".4f"
+        row.extend([
+            f"{best:{fmt_n}}" if best is not None else "N/A",
+            f"{final:{fmt_n}}" if final is not None else "N/A",
+        ])
         row.extend([p.get(name, "") for name in param_names])
         rows.append(row)
 
