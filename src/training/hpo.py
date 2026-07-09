@@ -8,6 +8,8 @@ import shutil
 import torch
 from typing import Callable
 
+from transformers import TrainerCallback
+
 from src.training.trainer_builder import build_trainer
 from src.utils.utils import LogManager
 
@@ -182,6 +184,20 @@ def hpo(param: dict, ht_param: dict):
         hp_kwargs.update(_build_optuna_kwargs(ht_param, param, lm.optuna_db))
 
         trainer = build_trainer(param)
+
+        # Trainer.hyperparameter_search returns trainer.objective, which is the
+        # *last* eval-step value (not the best within the trial).  This is wrong
+        # for Bayesian samplers like TPE that use trial values to model the
+        # search space.  Fix: a callback overrides trainer.objective with
+        # state.best_metric (the true best across all eval steps) at the end of
+        # each trial.
+        class _FixObjectiveCallback(TrainerCallback):
+            def on_train_end(self, args, state, control, **kwargs):
+                _ = (args, control, kwargs)
+                if state.best_metric is not None:
+                    trainer.objective = state.best_metric
+
+        trainer.add_callback(_FixObjectiveCallback())
 
         # compute_objective: extract the metric that metric_for_best_model
         # points to, instead of the default (eval_loss or sum-of-all-metrics).
