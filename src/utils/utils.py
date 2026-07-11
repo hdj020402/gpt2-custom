@@ -64,13 +64,12 @@ class LogManager:
         self.param = param
         self.logger: logging.Logger | None = None
         self._original_stdout = None
+        self._setup_output_dir()
 
     def __enter__(self):
         if not self._is_rank_zero():
-            # Non-rank-0 DDP processes: no-op (don't write to log file)
             return self
 
-        self._setup_output_dir()
         os.makedirs(self.param['output_dir'], exist_ok=True)
         log_file_path = f"{self.param['output_dir']}/{self._logger_name}.log"
         shutil.copy('configs/model_parameters.yml', self.param['output_dir'])

@@ -28,9 +28,7 @@ def _get_world_size() -> int:
 
 
 def main():
-    TIME = time.strftime('%b_%d_%Y_%H%M%S', time.localtime())
     param = load_config()
-    param['time'] = TIME
 
     # Detect distributed environment (set by torchrun / torch.distributed.launch).
     local_rank = int(os.environ.get('LOCAL_RANK', -1))
@@ -50,6 +48,13 @@ def main():
 
     rank = _get_rank()
     world_size = _get_world_size()
+
+    TIME = time.strftime('%b_%d_%Y_%H%M%S', time.localtime())
+    if is_distributed:
+        _buf = [TIME]
+        torch.distributed.broadcast_object_list(_buf, src=0)
+        TIME = _buf[0]
+    param['time'] = TIME
 
     if rank == 0:
         if is_distributed:
