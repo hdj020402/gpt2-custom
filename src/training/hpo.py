@@ -76,7 +76,7 @@ def _validate_known_params(cls_name: str, cls: type, cfg: dict) -> None:
         )
 
 
-def _build_optuna_kwargs(ht_param: dict, param: dict, optuna_db: str) -> dict:
+def _build_optuna_kwargs(ht_param: dict, param: dict) -> dict:
     """Build sampler, pruner, and extra kwargs for ``hyperparameter_search``.
 
     Returns a dict with keys: sampler, pruner, and any extra kwargs
@@ -116,7 +116,13 @@ def _build_optuna_kwargs(ht_param: dict, param: dict, optuna_db: str) -> dict:
     # ── Continue trials ──
     continue_cfg = opt_cfg.get('continue_trials', {})
     if continue_cfg.get('continue', False):
-        kwargs['storage'] = continue_cfg.get('storage') or optuna_db
+        storage = continue_cfg.get('storage')
+        if storage is None:
+            raise ValueError(
+                "continue_trials.continue=True requires continue_trials.storage "
+                "pointing to the existing Optuna database file."
+            )
+        kwargs['storage'] = f'sqlite:///{storage}'
         kwargs['study_name'] = continue_cfg.get('study_name') or f"hpo_{param['jobtype']}"
         kwargs['load_if_exists'] = True
 
@@ -181,7 +187,7 @@ def hpo(param: dict, ht_param: dict):
             'storage': lm.optuna_db,
             'study_name': f"hpo_{param['jobtype']}",
         }
-        hp_kwargs.update(_build_optuna_kwargs(ht_param, param, lm.optuna_db))
+        hp_kwargs.update(_build_optuna_kwargs(ht_param, param))
 
         trainer = build_trainer(param)
 
