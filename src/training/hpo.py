@@ -5,6 +5,7 @@ import math
 import optuna
 import logging
 import shutil
+import torch
 from typing import Callable
 
 from transformers import TrainerCallback
@@ -164,6 +165,13 @@ def _validate_gridsampler(ht_param: dict, n_trials: int) -> int:
     return n_trials
 
 
+def _is_rank_zero() -> bool:
+    """Return True on rank 0, or in non-distributed mode."""
+    if torch.distributed.is_available() and torch.distributed.is_initialized():
+        return torch.distributed.get_rank() == 0
+    return True
+
+
 def hpo(param: dict, ht_param: dict):
     opt_cfg = ht_param.get('optuna', {})
     n_trials = _validate_gridsampler(ht_param, opt_cfg.get('n_trials', 20))
@@ -207,24 +215,24 @@ def hpo(param: dict, ht_param: dict):
             compute_objective=compute_objective,
             **hp_kwargs,
         )
-        logger.info(best_run)
 
-        # Persist best_run to JSON for later inspection / reuse
-        best_run_path = f"{param['output_dir']}/best_run.json"
-        with open(best_run_path, 'w') as f:
-            json.dump({
-                "objective": best_run.objective,
-                "hyperparameters": best_run.hyperparameters,
-            }, f, indent=2)
-        logger.info(f"Best run (objective={best_run.objective}) saved to {best_run_path}")
+        # In DDP mode, only rank 0 gets a BestRun object; other ranks get None.
+        if _is_rank_zero():
+            logger.info(best_run)
 
-        # Remove per-trial checkpoints (HPO checkpoints are not production-ready;
-        # run a dedicated training with the best hyperparameters instead).
-        for ckpt_dir in glob.glob(f"{param['output_dir']}/checkpoint-*"):
-            try:
-                shutil.rmtree(ckpt_dir)
-                logger.info(f"Cleaned up checkpoint: {ckpt_dir}")
-            except FileNotFoundError:
-                pass
+            best_run_path = f"{param['output_dir']}/best_run.json"
+            with open(best_run_path, 'w') as f:
+                json.dump({
+                    "objective": best_run.objective,
+                    "hyperparameters": best_run.hyperparameters,
+                }, f, indent=2)
+            logger.info(f"Best run (objective={best_run.objective}) saved to {best_run_path}")
+
+            for ckpt_dir in glob.glob(f"{param['output_dir']}/checkpoint-*"):
+                try:
+                    shutil.rmtree(ckpt_dir)
+                    logger.info(f"Cleaned up checkpoint: {ckpt_dir}")
+                except FileNotFoundError:
+                    pass
 
     return best_run

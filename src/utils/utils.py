@@ -1,5 +1,7 @@
 import sys, os, shutil, hashlib, logging, json
 
+import torch
+
 def setup_logger(logger_name: str, log_file: str, level=logging.INFO) -> logging.Logger:
     logger = logging.getLogger(logger_name)
     logger.setLevel(level)
@@ -47,10 +49,13 @@ class LoggerWriter:
 class LogManager:
     """Context manager that redirects stdout to a log file.
 
+    In DDP mode, only rank 0 redirects stdout; other ranks are no-ops to
+    avoid corrupting the shared log file.
+
     Usage::
 
         with LogManager(param) as lm:
-            # stdout is captured to log file
+            # stdout is captured to log file (rank 0 only in DDP)
             ...
         # stdout is always restored, even on exception
     """
@@ -59,9 +64,12 @@ class LogManager:
         self.param = param
         self.logger: logging.Logger | None = None
         self._original_stdout = None
+        self._setup_output_dir()
 
     def __enter__(self):
-        self._setup_output_dir()
+        if not self._is_rank_zero():
+            return self
+
         os.makedirs(self.param['output_dir'], exist_ok=True)
         log_file_path = f"{self.param['output_dir']}/{self._logger_name}.log"
         shutil.copy('configs/model_parameters.yml', self.param['output_dir'])
@@ -75,6 +83,10 @@ class LogManager:
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        # Non-rank-0 DDP processes: nothing to clean up
+        if self.logger is None and self._original_stdout is None:
+            return False
+
         # Always restore stdout, even if an exception occurred
         if self._original_stdout is not None:
             sys.stdout = self._original_stdout
@@ -84,6 +96,13 @@ class LogManager:
                 self.logger.removeHandler(handler)
         # Don't suppress exceptions
         return False
+
+    @staticmethod
+    def _is_rank_zero() -> bool:
+        """Return True on rank 0, or in non-distributed (single-GPU) mode."""
+        if torch.distributed.is_available() and torch.distributed.is_initialized():
+            return torch.distributed.get_rank() == 0
+        return True
 
     def _setup_output_dir(self):
         mode = self.param['mode']

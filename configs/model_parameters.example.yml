@@ -17,6 +17,8 @@ tk_num_proc: 4
 per_device_train_batch_size: 32
 dataloader_num_workers: 4
 
+# Multi-GPU: launch with ``torchrun --nproc_per_node=N main.py`` (see README).
+
 ### Model ###
 n_ctx: 1024
 n_embd: 768
