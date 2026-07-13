@@ -49,7 +49,8 @@ def gen_trainer(
         gradient_accumulation_steps=param['gradient_accumulation_steps'],
 
         num_train_epochs=param['num_train_epochs'],
-        fp16=True,
+        bf16=param['bf16'],
+        fp16=param['fp16'],
         ddp_find_unused_parameters=False,
         dataloader_drop_last=True,
         eval_use_gather_object=False,

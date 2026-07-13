@@ -64,6 +64,10 @@ class AppConfig:
     logging_steps: int = 1000
     early_stopping: EarlyStoppingConfig = field(default_factory=EarlyStoppingConfig)
 
+    # ── Mixed precision ──
+    bf16: bool = True       # bfloat16 (recommended for Ampere+ GPUs: A100, RTX 3090/4090)
+    fp16: bool = False      # float16 (use only if GPU doesn't support bf16, e.g. V100/T4)
+
     # ── Generation ──
     device: str = "cuda"
     pretrained_model: str | None = None

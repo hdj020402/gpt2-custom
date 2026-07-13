@@ -32,7 +32,7 @@ def generation(param: dict):
         llm_engine = LLM(
             model=param['pretrained_model'],
             tokenizer_mode='auto',
-            dtype='float16',
+            dtype='bfloat16' if param['bf16'] else 'float16',
             max_model_len=param['n_ctx'],
             )
         generation_config = SamplingParams(

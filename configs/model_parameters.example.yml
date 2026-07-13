@@ -44,6 +44,10 @@ early_stopping:
   patience: 20
   threshold: 0
 
+### Mixed Precision ###
+bf16: true           # bfloat16 (recommended for Ampere+ GPUs: A100, RTX 3090/4090)
+fp16: false          # float16 (use only if GPU doesn't support bf16, e.g. V100/T4)
+
 ### Generation ###
 device: cuda
 pretrained_model: null
